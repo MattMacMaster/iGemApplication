@@ -3,9 +3,8 @@ const Sidemenu = ({ isOpen, toggleMenu }) => {
     return (
         <div className={`Sidemenu ${isOpen ? 'open' : 'closed'}`}>
             <ul>
-                <li>
-                    <a href='/'>Parts Menu</a>
-                </li>
+                    <button>Parts Menu</button>
+                    <button>Reset Canvas</button>
             </ul>
         </div>
     )

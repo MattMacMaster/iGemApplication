@@ -41,6 +41,12 @@ header {
   transition: all 1s;
 }
 
+.Sidemenu ul {
+  display: flex;
+  flex-direction: column;
+}
+
+
 .Sidemenu.closed {
   transform: translateX(-250px);
 }
