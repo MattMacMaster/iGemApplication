@@ -6,9 +6,15 @@ import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/
 import '@xyflow/react/dist/style.css';
 
 function App() {
+  const [isMenuOpen, setIsMenuOpen] = useState(true);
   return (
     <div className="App">
-      <Sidemenu />
+      <header>
+        <button className="menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>☰</button>
+        OSAGE Control Interface
+      </header>
+
+      <Sidemenu isOpen={isMenuOpen} toggleMenu={() => setIsMenuOpen(!isMenuOpen)} />
     </div>
   );
 }

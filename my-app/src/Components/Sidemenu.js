@@ -1,8 +1,12 @@
-import React from 'react';
 
-function Sidemenu() {
+const Sidemenu = ({ isOpen, toggleMenu }) => {
     return (
-        <div className = "Sidemenu">
+        <div className={`Sidemenu ${isOpen ? 'open' : 'closed'}`}>
+            <ul>
+                <li>
+                    <a href='/'>Parts Menu</a>
+                </li>
+            </ul>
         </div>
     )
 }
