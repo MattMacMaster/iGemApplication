@@ -2,7 +2,7 @@ import logo from './logo.svg';
 import './App.css';
 import Sidemenu from './Components/Sidemenu';
 import { useState, useCallback } from 'react';
-import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
+import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, Background, Controls } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 function App() {
@@ -15,6 +15,14 @@ function App() {
       </header>
 
       <Sidemenu isOpen={isMenuOpen} toggleMenu={() => setIsMenuOpen(!isMenuOpen)} />
+
+    <div style = {{ height: '100%', width: '100%' }}>
+      <ReactFlow>
+        <Background />
+        <Controls />
+      </ReactFlow>
+    </div>
+
     </div>
   );
 }
