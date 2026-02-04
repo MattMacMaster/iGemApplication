@@ -1,7 +1,7 @@
 import logo from './logo.svg';
 import './App.css';
 import Sidemenu from './Components/Sidemenu';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, Background, Controls } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -19,7 +19,6 @@ function App() {
     <div style = {{ height: '100%', width: '100%' }}>
       <ReactFlow>
         <Background />
-        <Controls />
       </ReactFlow>
     </div>
 
