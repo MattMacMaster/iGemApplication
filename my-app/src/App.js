@@ -7,6 +7,15 @@ import '@xyflow/react/dist/style.css';
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+  const nodeId = useRef(0);
+
+  // need these 3 basic ones for sure, look for more later if need more functionality 
+  const onNodesChange = useCallback((changes) => setNodes ((nds) => applyNodeChanges(changes, nds)), [setNodes]);
+  const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [setEdges]);
+  const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
+
   return (
     <div className="App">
       <header>
