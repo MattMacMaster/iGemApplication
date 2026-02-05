@@ -17,7 +17,14 @@ function App() {
   const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
 
   /*
-*/
+  const newNode = {
+    id: 'hardware-${nodeID.current++}',
+    data: { label: parsedData.label },
+    position,
+    type: 'default',
+  }
+  */
+
   return (
     <div className="App">
       <header>
@@ -28,11 +35,17 @@ function App() {
       <Sidemenu isOpen={isMenuOpen} toggleMenu={() => setIsMenuOpen(!isMenuOpen)} />
 
     <div style = {{ height: '100%', width: '100%' }}>
-      <ReactFlow>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        fitView
+      >
         <Background />
       </ReactFlow>
     </div>
-
     </div>
   );
 }
