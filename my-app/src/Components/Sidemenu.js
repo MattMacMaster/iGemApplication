@@ -4,7 +4,6 @@ const Sidemenu = ({ isOpen, toggleMenu }) => {
     const [isPartsMenuOpen, setIsPartsMenuOpen] = useState(false);
 
     const parts = [
-        'Steppermotor',
         'Peristaltic Pump',
         'Spectrometer',
         'Syringe Pump',

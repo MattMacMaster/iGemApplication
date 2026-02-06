@@ -52,8 +52,8 @@ header {
   transform: translateX(-275px);
 }
 
-.react-flow_controls {
-  z-index: 15;
+.react-flow__controls {
+  z-index: 20;
 }
 
 .hardware-item {
