@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const Sidemenu = ({ isOpen, toggleMenu }) => {
+const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas }) => {
     const [isPartsMenuOpen, setIsPartsMenuOpen] = useState(false);
 
     const parts = [
@@ -44,7 +44,7 @@ const Sidemenu = ({ isOpen, toggleMenu }) => {
                             </div>
                         )}
                     </div>
-                    <button>Reset Canvas</button>
+                    <button type="button" onClick={onResetCanvas}>Reset Canvas</button>
             </ul>
         </div>
     )

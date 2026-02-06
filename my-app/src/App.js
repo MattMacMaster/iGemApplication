@@ -17,6 +17,11 @@ function App() {
   const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [setEdges]);
   const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
 
+  const onResetCanvas = useCallback(() => {
+    setNodes([]);
+    setEdges([]);
+    nodeId.current = 0;
+  }, []);
 
   // from HTML Drag and Drop API
   const onDragOver = useCallback((event) => {
@@ -67,7 +72,11 @@ function App() {
         OSAGE Control Interface
       </header>
 
-      <Sidemenu isOpen={isMenuOpen} toggleMenu={() => setIsMenuOpen(!isMenuOpen)} />
+      <Sidemenu
+        isOpen={isMenuOpen}
+        toggleMenu={() => setIsMenuOpen(!isMenuOpen)}
+        onResetCanvas={onResetCanvas}
+      />
 
     <div style = {{ height: '100%', width: '100%' }}>
       <ReactFlow
