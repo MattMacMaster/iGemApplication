@@ -4,18 +4,19 @@ const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas }) => {
     const [isPartsMenuOpen, setIsPartsMenuOpen] = useState(false);
 
     const parts = [
-        'Peristaltic Pump',
-        'Spectrometer',
-        'Syringe Pump',
-        'Electroporator',
-        'Thermometer'
-    ]
+        { name: 'Peristaltic Pump', type: 'peristalticPump' },
+        { name: 'Spectrometer', type: 'spectrometer' },
+        { name: 'Syringe Pump', type: 'syringePump' },
+        { name: 'Electroporator', type: 'electroporator' },
+        { name: 'Thermometer', type: 'thermometer' }
+    ];
 
     const onDragStart = (event, part) => {
         event.dataTransfer.effectAllowed = 'move';
         event.dataTransfer.setData('application/reactflow', JSON.stringify({
-            type: 'hardware',
-            label: part
+            type: part.type,
+            label: part.name,
+            settings: {}
         }));
     };
 
@@ -38,7 +39,7 @@ const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas }) => {
                                         draggable
                                         onDragStart={(e) => onDragStart(e, part)}
                                     >
-                                        {part}
+                                        {part.name}
                                     </div>
                                 ))}
                             </div>

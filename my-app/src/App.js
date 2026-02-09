@@ -1,9 +1,10 @@
 import logo from './logo.svg';
 import './App.css';
 import Sidemenu from './Components/Sidemenu';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, Background, Controls } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import ThermometerNode from './Components/HardwareNodes/ThermometerNode';
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
@@ -11,6 +12,13 @@ function App() {
   const [edges, setEdges] = useState([]);
   const nodeId = useRef(0);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
+
+  const nodeTypes = useMemo(
+    () => ({
+      thermometer: ThermometerNode,
+    }),
+    []
+  );
 
   // need these 3 basic ones for sure, look for more later if need more functionality 
   const onNodesChange = useCallback((changes) => setNodes ((nds) => applyNodeChanges(changes, nds)), [setNodes]);
@@ -58,7 +66,10 @@ function App() {
           id: newId,
           type: parsed.type ?? 'default',
           position,
-          data: { label: parsed.label ?? 'Node' },
+          data: { 
+            label: parsed.label ?? 'Node',
+            settings: parsed.settings ?? {}
+          },
         })
       );
     },
@@ -82,6 +93,7 @@ function App() {
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
