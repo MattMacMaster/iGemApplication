@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
+import './HardwareNode.css';
 
 const ThermometerNode = ({ data, isConnectable, selected }) => {
     const [temperature, setTemperature] = useState(data.settings?.temperature || '');
