@@ -4,16 +4,33 @@ import { useState } from "react";
 
 function App() {
   const [message, setMessage] = useState("");
-
-  const callBackend = async () => {
-    try {
-      const res = await fetch("http://localhost:5000/api/hello");
-      const data = await res.json();
-      setMessage(data.message);
-    } catch (err) {
-      console.error("Backend error:", err);
-    }
-  };
+    var jsonData = {
+    "Instructions": [
+        {
+            "Type": "Motor", 
+            "Axis": "X",
+            "BoardNum": 1,
+            "Val": 1000,
+            "Dir": 1
+        },
+        {
+            "Type": "Temp", 
+            "BoardNum": 1,
+            "Val": 1000,
+            "Time": 50
+        }
+    ]
+  }
+  function handleClick() {
+    fetch('http://localhost:5000/api/data', {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(jsonData)
+    })
+  }
 
   return (
     <div className="App">
@@ -22,7 +39,7 @@ function App() {
 
         <p>Lethbridge iGem</p>
 
-        <button onClick={callBackend}>
+        <button onClick={handleClick}>
           Test backend
         </button>
 
