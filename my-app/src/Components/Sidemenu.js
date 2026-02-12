@@ -23,29 +23,29 @@ const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas }) => {
     return (
         <div className={`Sidemenu ${isOpen ? 'open' : 'closed'}`}>
             <ul>
-                    <div className="parts-menu">
-                        <button
-                            className="parts-menu-open"
-                            onClick={() => setIsPartsMenuOpen(!isPartsMenuOpen)}
-                        >
-                            Parts Menu {isPartsMenuOpen ? '▼' : '▶'}
-                        </button>
-                        {isPartsMenuOpen && (
-                            <div className="parts-list">
-                                {parts.map((part, index) => (
-                                    <div
-                                        key={index}
-                                        className="hardware-item"
-                                        draggable
-                                        onDragStart={(e) => onDragStart(e, part)}
-                                    >
-                                        {part.name}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                    <button type="button" onClick={onResetCanvas}>Reset Canvas</button>
+                <div className="parts-menu">
+                    <button
+                        className="parts-menu-open"
+                        onClick={() => setIsPartsMenuOpen(!isPartsMenuOpen)}
+                    >
+                        Parts Menu {isPartsMenuOpen ? '▼' : '▶'}
+                    </button>
+                    {isPartsMenuOpen && (
+                        <div className="parts-list">
+                            {parts.map((part, index) => (
+                                <div
+                                    key={index}
+                                    className="hardware-item"
+                                    draggable
+                                    onDragStart={(e) => onDragStart(e, part)}
+                                >
+                                    {part.name}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                <button type="button" onClick={onResetCanvas}>Reset Canvas</button>
             </ul>
         </div>
     )

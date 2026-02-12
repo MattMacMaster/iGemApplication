@@ -12,6 +12,7 @@ function App() {
   const [edges, setEdges] = useState([]);
   const nodeId = useRef(0);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
+  const [showSystemPanel, setShowSystemPanel] = useState(false);
 
   const nodeTypes = useMemo(
     () => ({
@@ -76,11 +77,24 @@ function App() {
     [reactFlowInstance]
   );
 
+  const isValidConnection = useCallback((connection) => {
+    const hasConnection = edges.some(
+      edge => edge.source === connection.source && edge.sourceHandle === connection.sourceHandle
+    );
+    return !hasConnection;
+  }, [edges]);
+
   return (
     <div className="App">
       <header>
         <button className="menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>☰</button>
         OSAGE Control Interface
+        <button 
+          onClick={() => setShowSystemPanel(!showSystemPanel)}
+          style={{ marginLeft: '20px', padding: '5px 10px' }}
+        >
+          {showSystemPanel ? 'Hide System Panel' : 'Show System Panel'}
+        </button>
       </header>
 
       <Sidemenu
@@ -89,7 +103,42 @@ function App() {
         onResetCanvas={onResetCanvas}
       />
 
-    <div style = {{ height: '100%', width: '100%' }}>
+      {showSystemPanel && (
+        <div style={{
+          position: 'absolute',
+          bottom: '10px',
+          right: '10px',
+          background: 'rgba(0, 0, 0, 0.9)',
+          color: '#0f0',
+          padding: '15px',
+          borderRadius: '8px',
+          zIndex: 1000,
+          maxWidth: '400px',
+          fontFamily: 'monospace',
+          fontSize: '12px',
+          maxHeight: '60vh',
+          overflow: 'auto'
+        }}>
+          <h3 style={{ margin: '0 0 10px 0', color: 'rgb(255, 255, 255)' }}>System Panel</h3>
+          <div style={{ marginBottom: '10px' }}>
+            <strong>Components ({nodes.length}):</strong>
+            {nodes.map(item => (
+              <li key={item.id}> {
+                item.data.label}
+              </li>))}
+          </div>
+          <div>
+            <strong>Connections ({edges.length}):</strong>
+            {edges.map(item => (
+              <li key={item.id}>
+                {item.source} to {item.target}
+              </li>
+            ))}
+          </div>
+        </div>
+      )}
+
+    <div style={{ height: '100%', width: '100%' }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -100,6 +149,7 @@ function App() {
         onInit={setReactFlowInstance}
         onDrop={onDrop}
         onDragOver={onDragOver}
+        isValidConnection={isValidConnection}
         fitView
       >
         <Background />
