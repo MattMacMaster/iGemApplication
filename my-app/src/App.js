@@ -78,8 +78,11 @@ function App() {
   );
 
   const isValidConnection = useCallback((connection) => {
+    const sourceKey = (v) => v ?? null;
     const hasConnection = edges.some(
-      edge => edge.source === connection.source && edge.sourceHandle === connection.sourceHandle
+      (edge) =>
+        edge.source === connection.source &&
+        sourceKey(edge.sourceHandle) === sourceKey(connection.sourceHandle)
     );
     return !hasConnection;
   }, [edges]);

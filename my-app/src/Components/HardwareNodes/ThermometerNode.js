@@ -16,6 +16,7 @@ const ThermometerNode = ({ data, isConnectable, selected }) => {
     return (
         <div className={`hardware-node thermometer-node ${selected ? 'selected' : ''}`}>
             <Handle
+                id="target"
                 type="target" // target is for INCOMING
                 position={Position.Top}
                 isConnectable={isConnectable}
@@ -23,7 +24,8 @@ const ThermometerNode = ({ data, isConnectable, selected }) => {
             />
 
             <Handle
-                type="source" // source for OUTGOING
+                id="source"
+                type="source" // source is for OUTGOING
                 position={Position.Top}
                 isConnectable={isConnectable}
                 style={{ left: '75%' }}
