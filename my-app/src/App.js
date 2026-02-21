@@ -5,15 +5,24 @@ import { useState } from "react";
 function App() {
   const [message, setMessage] = useState("");
 
-  const callBackend = async () => {
-    try {
-      const res = await fetch("http://localhost:5000/api/hello");
-      const data = await res.json();
-      setMessage(data.message);
-    } catch (err) {
-      console.error("Backend error:", err);
-    }
-  };
+
+
+const callBackend = async (payload) => {
+  try {
+    const res = await fetch("http://localhost:5000/api/hello", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload), // convert here
+    });
+
+    const data = await res.json();
+    setMessage(data.message);
+  } catch (err) {
+    console.error("Backend error:", err);
+  }
+};
 
   return (
     <div className="App">
@@ -22,8 +31,26 @@ function App() {
 
         <p>Lethbridge iGem</p>
 
-        <button onClick={callBackend}>
-          Test backend
+        <button onClick={() =>
+          callBackend({
+          type: "Motor",
+          board: 3,
+          axis: "Y",
+          compInstr: { steps: 100, Direction: 1 }
+          })
+          }>
+          Test backend - Up
+        </button>
+
+        <button onClick={() =>
+          callBackend({
+          type: "Motor",
+          board: 3,
+          axis: "Y",
+          compInstr: { steps: 100, Direction: 0 }
+          })
+          }>
+          Test backend - Down
         </button>
 
         {message && <p>{message}</p>}
