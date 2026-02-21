@@ -5,11 +5,9 @@ import { useState } from "react";
 function App() {
   const [message, setMessage] = useState("");
 
-
-
 const callBackend = async (payload) => {
   try {
-    const res = await fetch("http://localhost:5000/api/hello", {
+    const res = await fetch("http://localhost:5000/api/instr", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
