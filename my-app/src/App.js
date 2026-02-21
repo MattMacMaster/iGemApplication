@@ -7,7 +7,7 @@ function App() {
 
 const callBackend = async (payload) => {
   try {
-    const res = await fetch("http://localhost:5000/api/instr", {
+    const res = await fetch("http://localhost:5001/api/instr", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -34,7 +34,7 @@ const callBackend = async (payload) => {
           type: "Motor",
           board: 3,
           axis: "Y",
-          compInstr: { steps: 100, Direction: "up" }
+          compInstr: { steps: 1000, Direction: "up" }
           })
           }>
           Test backend - Up
@@ -45,7 +45,7 @@ const callBackend = async (payload) => {
           type: "Motor",
           board: 3,
           axis: "Y",
-          compInstr: { steps: 100, Direction: "down" } //This could be binary 0:down etc
+          compInstr: { steps: 1000, Direction: "down" } //This could be binary 0:down etc
           })
           }>
           Test backend - Down
