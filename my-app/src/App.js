@@ -34,7 +34,7 @@ const callBackend = async (payload) => {
           type: "Motor",
           board: 3,
           axis: "Y",
-          compInstr: { steps: 100, Direction: 1 }
+          compInstr: { steps: 100, Direction: "up" }
           })
           }>
           Test backend - Up
@@ -45,7 +45,7 @@ const callBackend = async (payload) => {
           type: "Motor",
           board: 3,
           axis: "Y",
-          compInstr: { steps: 100, Direction: 0 }
+          compInstr: { steps: 100, Direction: "down" } //This could be binary 0:down etc
           })
           }>
           Test backend - Down
