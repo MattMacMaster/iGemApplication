@@ -62,6 +62,14 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
     }
   };
 
+  const handleDirectionChange = (e) => {
+    setDirection(e.target.value);
+
+    if (data.onSettingsChange) {
+      data.onSettingsChange({ direction: e.target.value });
+    }
+  };
+
   return (
     <div className={`hardware-node syringePump-node ${selected ? 'selected' : ''}`}>
       <Handle
@@ -116,6 +124,17 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
               placeholder="-"
             />
           </div>
+          <div className="setting-item">
+            <span className="setting-key">Direction (up, down):</span>
+            <input
+              type="text"
+              style={{ textTransform: 'lowercase' }}
+              className="setting-input"
+              value={directionVal}
+              onChange={handleDirectionChange}
+              placeholder="-"
+            />
+          </div>
         </div>
       </div>
 
@@ -123,13 +142,8 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
         onClick={() =>
           CallBackend({
             type: "Motor",
-<<<<<<< HEAD
-            board: boardVal,
             axis: axisVal,
-=======
             board: Number(boardVal),
-            axis: "Z",
->>>>>>> 21031b8dec62c86e572e1ff5bf25f38fc890921a
             compInstr: { steps: steps, Direction: "down" }
           })
         }
