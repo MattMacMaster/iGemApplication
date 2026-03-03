@@ -5,6 +5,10 @@ import { useState, useCallback, useRef, useMemo } from 'react';
 import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, Background, Controls } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import ThermometerNode from './Components/HardwareNodes/ThermometerNode';
+import SpectrometerNode from './Components/HardwareNodes/SpectrometerNode';
+import SyringePumpNode from './Components/HardwareNodes/SyringePumpNode';
+import ElectroporatorNode from './Components/HardwareNodes/ElectroporatorNode';
+import PeristalticPumpNode from './Components/HardwareNodes/PeristalticPumpNode';
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
@@ -14,43 +18,50 @@ function App() {
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [showSystemPanel, setShowSystemPanel] = useState(false);
 
+
+  /* Node types go here, add once created */
   const nodeTypes = useMemo(
     () => ({
       thermometer: ThermometerNode,
+      spectrometer: SpectrometerNode,
+      syringePump: SyringePumpNode,
+      electroporator: ElectroporatorNode,
+      peristalticPump: PeristalticPumpNode,
     }),
     []
   );
 
-  // need these 3 basic ones for sure, look for more later if need more functionality 
+  /* need these 3 basic ones for sure, look for more later if need more functionality */
   const onNodesChange = useCallback((changes) => setNodes ((nds) => applyNodeChanges(changes, nds)), [setNodes]);
   const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [setEdges]);
   const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
 
+  /* Reset Canvas */
   const onResetCanvas = useCallback(() => {
     setNodes([]);
     setEdges([]);
     nodeId.current = 0;
   }, []);
 
-  // from HTML Drag and Drop API
+  /* From HTML Drag and Drop API */
   const onDragOver = useCallback((event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  // from HTML Drag and Drop API too
+  /* from HTML Drag and Drop API too */
   const onDrop = useCallback(
     (event) => {
-      event.preventDefault();
+      event.preventDefault(); // stop browser from opening/dragging the dropped item
 
       if (!reactFlowInstance) return;
 
-      const raw = event.dataTransfer.getData('application/reactflow');
-      if (!raw) return;
+      const raw = event.dataTransfer.getData('application/reactflow'); // get data set by the draggable
+      if (!raw) return; // not a React Flow node, ignore
 
       let parsed;
       try {
-        parsed = JSON.parse(raw);
+        parsed = JSON.parse(raw); // { type, label, settings } from the sidebar item
       } catch {
         return;
       }
@@ -60,14 +71,14 @@ function App() {
         y: event.clientY,
       });
 
-      const newId = `node-${nodeId.current++}`;
+      const newId = `node-${nodeId.current++}`; // unique id so React can track this node
 
       setNodes((nds) =>
         nds.concat({
           id: newId,
-          type: parsed.type ?? 'default',
+          type: parsed.type ?? 'default', // which node component to render
           position,
-          data: { 
+          data: {
             label: parsed.label ?? 'Node',
             settings: parsed.settings ?? {}
           },
@@ -77,6 +88,7 @@ function App() {
     [reactFlowInstance]
   );
 
+  /* Check if connection is valid, prevents multiple source edges */
   const isValidConnection = useCallback((connection) => {
     const sourceKey = (v) => v ?? null;
     const hasConnection = edges.some(
