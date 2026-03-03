@@ -42,7 +42,7 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
     setBoard(e.target.value);
 
     if (data.onSettingsChange) {
-      data.onSettingsChange({ steps: e.target.value });
+      data.onSettingsChange({ boardVal: e.target.value });
     }
   };
 
@@ -95,7 +95,7 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
         onClick={() =>
           CallBackend({
             type: "Motor",
-            board: boardVal,
+            board: Number(boardVal),
             axis: "Z",
             compInstr: { steps: steps, Direction: "down" }
           })
