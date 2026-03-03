@@ -50,7 +50,7 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
     setBoard(e.target.value);
 
     if (data.onSettingsChange) {
-      data.onSettingsChange({ steps: e.target.value });
+      data.onSettingsChange({ boardVal: e.target.value });
     }
   };
 
@@ -123,16 +123,19 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
         onClick={() =>
           CallBackend({
             type: "Motor",
+<<<<<<< HEAD
             board: boardVal,
             axis: axisVal,
+=======
+            board: Number(boardVal),
+            axis: "Z",
+>>>>>>> 21031b8dec62c86e572e1ff5bf25f38fc890921a
             compInstr: { steps: steps, Direction: "down" }
           })
         }
       >
         Test backend - Up
       </button>
-
-      {message && <div>{message}</div>}
     </div>
   );
 };
