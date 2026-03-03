@@ -144,7 +144,7 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
             type: "Motor",
             axis: axisVal,
             board: Number(boardVal),
-            compInstr: { steps: steps, Direction: "down" }
+            compInstr: { steps: steps, Direction: directionVal }
           })
         }
       >
