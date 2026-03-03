@@ -13,6 +13,14 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
 
   const [message, setMessage] = useState("");
 
+  const [axisVal, setAxis] = useState(
+    data.settings?.axisVal || ''
+  );
+
+  const [directionVal, setDirection] = useState(
+    data.settings?.directionVal || ''
+  );
+
   const CallBackend = async (payload) => {
     try {
       const res = await fetch("http://localhost:5001/api/instr", {
@@ -43,6 +51,14 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
 
     if (data.onSettingsChange) {
       data.onSettingsChange({ steps: e.target.value });
+    }
+  };
+
+  const handleAxisChange = (e) => {
+    setAxis(e.target.value);
+
+    if (data.onSettingsChange) {
+      data.onSettingsChange({ axis: e.target.value });
     }
   };
 
@@ -79,6 +95,8 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
               onChange={handleStepChange}
               placeholder="xx"
             />
+          </div>
+          <div className="setting-item">
             <span className="setting-key">Board (1-4):</span>
             <input
               type="number"
@@ -86,6 +104,16 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
               value={boardVal}
               onChange={handleBoardChange}
               placeholder="xx"
+            />
+          </div>
+          <div className="setting-item">
+            <span className="setting-key">Axis (X, Y, Z, A):</span>
+            <input
+              type="text"
+              className="setting-input"
+              value={axisVal}
+              onChange={handleAxisChange}
+              placeholder="-"
             />
           </div>
         </div>
@@ -96,7 +124,7 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
           CallBackend({
             type: "Motor",
             board: boardVal,
-            axis: "Z",
+            axis: axisVal,
             compInstr: { steps: steps, Direction: "down" }
           })
         }
