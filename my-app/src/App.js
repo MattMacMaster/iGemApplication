@@ -69,6 +69,8 @@ import { useState, useCallback, useRef, useMemo } from 'react';
 import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, Background, Controls } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import ThermometerNode from './Components/HardwareNodes/ThermometerNode';
+import SyringePumpNode from './Components/HardwareNodes/SyringePumpNode';
+
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
@@ -81,6 +83,7 @@ function App() {
   const nodeTypes = useMemo(
     () => ({
       thermometer: ThermometerNode,
+      syringePump: SyringePumpNode,
     }),
     []
   );
