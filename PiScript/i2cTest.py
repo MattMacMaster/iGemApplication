@@ -1,6 +1,9 @@
 import smbus
 import time
 import argparse
+# THIS IS NOW DEPRECATED AND WILL NOT BE FURTHER UPDATED
+# USE THE EXPRESS SERVER INSTEAD FOR COMMUNICATION WITH THE ARDUINO
+# THIS WILL BE LEFT IN PLACE FOR REFERENCE AND TESTING PURPOSES, BUT THE EXPRESS SERVER IS NOW THE PRIMARY MEANS OF COMMUNICATION WITH THE ARDUINO
 
 def ConvertStringToBytes(src):
     return [ord(b) for b in src]
@@ -9,6 +12,8 @@ def ConvertStringToBytes(src):
 ARDUINO_1_ADDRESS = 0x04 #Currently going single Addresss route
 #ARDUINO_2_ADDRESS = 0x05
 #ARDUINO_3_ADDRESS = 0x06
+TCA_ADDRESS = 0x70
+CHANNEL0 = 7
 SlaveAddress = 0x04
 I2Cbus = smbus.SMBus(1)
 
@@ -41,8 +46,12 @@ valSelect = str(args.distance).strip()
 BytesToSend = ConvertStringToBytes(f"{aSelect} {bSelect} {valSelect}")
 
 print(BytesToSend)
+
+#Left side of the chip may be badly sautered lmao
 try:
+    I2Cbus.write_byte(TCA_ADDRESS, 1 << CHANNEL) # Set the multiplexer to the correct channel
     I2Cbus.write_i2c_block_data(SlaveAddress, 0x00, BytesToSend)
     print(f"Sent {bSelect} to Arduino {aSelect} at address {hex(SlaveAddress)}")
+
 except:
     print("invalid i2c location")
