@@ -148,7 +148,7 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
           })
         }
       >
-        Test backend - Up
+        Send
       </button>
     </div>
   );
