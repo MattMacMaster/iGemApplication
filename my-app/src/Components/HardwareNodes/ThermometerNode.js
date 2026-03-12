@@ -72,6 +72,7 @@ const ThermometerNode = ({ data, isConnectable, selected }) => {
       </div>
 
       <button
+        className="node-action-btn"
         onClick={() =>
           CallBackend({
             type: "Motor",
@@ -81,10 +82,10 @@ const ThermometerNode = ({ data, isConnectable, selected }) => {
           })
         }
       >
-        Test backend - Up
+        Send instruction
       </button>
 
-      {message && <div>{message}</div>}
+      {message && <p className="node-message">{message}</p>}
     </div>
   );
 };

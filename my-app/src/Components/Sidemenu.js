@@ -1,7 +1,8 @@
 import { useState } from 'react';
 
 const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas }) => {
-    const [isPartsMenuOpen, setIsPartsMenuOpen] = useState(false);
+    const [isPartsOpen, setIsPartsOpen] = useState(true);
+    const [isOptionsOpen, setIsOptionsOpen] = useState(true);
 
     const parts = [
         { name: 'Peristaltic Pump', type: 'peristalticPump' },
@@ -21,21 +22,23 @@ const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas }) => {
     };
 
     return (
-        <div className={`Sidemenu ${isOpen ? 'open' : 'closed'}`}>
-            <ul>
-                <div className="parts-menu">
-                    <button
-                        className="parts-menu-open"
-                        onClick={() => setIsPartsMenuOpen(!isPartsMenuOpen)}
-                    >
-                        Parts Menu {isPartsMenuOpen ? '▼' : '▶'}
-                    </button>
-                    {isPartsMenuOpen && (
-                        <div className="parts-list">
+        <aside className={`Sidemenu ${isOpen ? 'open' : 'closed'}`}>
+            <div className="Sidemenu__panel">
+                <button
+                    className="Sidemenu__panel-header"
+                    onClick={() => setIsPartsOpen(!isPartsOpen)}
+                    aria-expanded={isPartsOpen}
+                >
+                    <span>Parts Menu</span>
+                    <span className="Sidemenu__chevron">{isPartsOpen ? '▼' : '▶'}</span>
+                </button>
+                {isPartsOpen && (
+                    <div className="Sidemenu__panel-content">
+                        <div className="Sidemenu__parts-list">
                             {parts.map((part, index) => (
                                 <div
                                     key={index}
-                                    className="hardware-item"
+                                    className="Sidemenu__part-item"
                                     draggable
                                     onDragStart={(e) => onDragStart(e, part)}
                                 >
@@ -43,12 +46,33 @@ const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas }) => {
                                 </div>
                             ))}
                         </div>
-                    )}
-                </div>
-                <button type="button" onClick={onResetCanvas}>Reset Canvas</button>
-            </ul>
-        </div>
-    )
+                    </div>
+                )}
+            </div>
+
+            <div className="Sidemenu__panel">
+                <button
+                    className="Sidemenu__panel-header"
+                    onClick={() => setIsOptionsOpen(!isOptionsOpen)}
+                    aria-expanded={isOptionsOpen}
+                >
+                    {/* Options menu - mainly to prevent user accidentally reseting the canvas */}
+                    <span>Options</span>
+                    <span className="Sidemenu__chevron">{isOptionsOpen ? '▼' : '▶'}</span>
+                </button>
+                {isOptionsOpen && (
+                    <div className="Sidemenu__panel-content">
+                        <button type="button" className="Sidemenu__reset-btn" onClick={onResetCanvas}>
+                            Reset Canvas
+                        </button>
+                        <button type="button" className="Sidemenu__dark-mode-btn" onClick={onResetCanvas}>
+                            Dark Mode
+                        </button>
+                    </div>
+                )}
+            </div>
+        </aside>
+    );
 }
 
 export default Sidemenu

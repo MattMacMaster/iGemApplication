@@ -156,15 +156,19 @@ function App() {
 
   return (
     <div className="App">
-      <header>
-        <button className="menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>☰</button>
-        OSAGE Control Interface
-        <button 
-          onClick={() => setShowSystemPanel(!showSystemPanel)}
-          style={{ marginLeft: '20px', padding: '5px 10px' }}
-        >
-          {showSystemPanel ? 'Hide System Panel' : 'Show System Panel'}
-        </button>
+      <header className="app-header">
+        <div className="app-header__left">
+          <button className="menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle menu">☰</button>
+          <h1 className="app-header__title">MOSMAGE Control Interface</h1>
+        </div>
+        <div className="app-header__actions">
+          <button 
+            className="btn-secondary"
+            onClick={() => setShowSystemPanel(!showSystemPanel)}
+          >
+            {showSystemPanel ? 'Hide System Panel' : 'System Panel'}
+          </button>
+        </div>
       </header>
 
       <Sidemenu
@@ -174,41 +178,28 @@ function App() {
       />
 
       {showSystemPanel && (
-        <div style={{
-          position: 'absolute',
-          bottom: '10px',
-          right: '10px',
-          background: 'rgba(0, 0, 0, 0.9)',
-          color: '#0f0',
-          padding: '15px',
-          borderRadius: '8px',
-          zIndex: 1000,
-          maxWidth: '400px',
-          fontFamily: 'monospace',
-          fontSize: '12px',
-          maxHeight: '60vh',
-          overflow: 'auto'
-        }}>
-          <h3 style={{ margin: '0 0 10px 0', color: 'rgb(255, 255, 255)' }}>System Panel</h3>
-          <div style={{ marginBottom: '10px' }}>
-            <strong>Components ({nodes.length}):</strong>
-            {nodes.map(item => (
-              <li key={item.id}> {
-                item.data.label}
-              </li>))}
+        <div className="system-panel">
+          <h3 className="system-panel__title">System Panel</h3>
+          <div className="system-panel__section">
+            <div className="system-panel__section-title">Components ({nodes.length})</div>
+            <ul>
+              {nodes.map(item => (
+                <li key={item.id}>{item.data.label}</li>
+              ))}
+            </ul>
           </div>
-          <div>
-            <strong>Connections ({edges.length}):</strong>
-            {edges.map(item => (
-              <li key={item.id}>
-                {item.source} to {item.target}
-              </li>
-            ))}
+          <div className="system-panel__section">
+            <div className="system-panel__section-title">Connections ({edges.length})</div>
+            <ul>
+              {edges.map(item => (
+                <li key={item.id}>{item.source} → {item.target}</li>
+              ))}
+            </ul>
           </div>
         </div>
       )}
 
-    <div style={{ height: '100%', width: '100%' }}>
+    <div className="app-canvas-wrapper">
       <ReactFlow
         nodes={nodes}
         edges={edges}

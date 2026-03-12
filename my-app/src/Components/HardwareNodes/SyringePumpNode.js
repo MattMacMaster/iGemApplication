@@ -139,6 +139,7 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
       </div>
 
       <button
+        className="node-action-btn"
         onClick={() =>
           CallBackend({
             type: "Motor",
@@ -148,8 +149,10 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
           })
         }
       >
-        Test backend - Up
+        Send instruction
       </button>
+
+      {message && <p className="node-message">{message}</p>}
     </div>
   );
 };

@@ -1,48 +1,39 @@
 .hardware-node {
-    background: white;
-    border: 1px solid black;
-    min-width: 180px;
-    padding: 10px;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  min-width: 200px; padding: 0; overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  transition: box-shadow .2s, border-color .2s;
 }
+.hardware-node:hover { border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+.hardware-node.selected { border-color: #0ea5e9; box-shadow: 0 0 0 2px rgba(14,165,233,.2); }
 
+.hardware-node-content { padding: 12px 14px; }
 .hardware-node-header {
-    font-size: 14px;
-    margin-bottom: 8px;
-    text-align: center;
-    border-bottom: 1px solid black;
-    padding-bottom: 6px;
+  font-size: .9375rem; font-weight: 600; text-align: center;
+  margin-bottom: 10px; padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0; color: #1e293b;
 }
-
-.hardware-node-settings {
-    font-size: 11px;
-    margin-top: 6px;
-}
-
-.setting-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 4px 0;
-}
-
-.setting-key {
-    margin-right: 8px;
-}
+.hardware-node-settings { font-size: .8125rem; display: flex; flex-direction: column; gap: 8px; }
+.setting-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.setting-key { color: #64748b; flex-shrink: 0; }
 
 .setting-input {
-    width: 60px;
-    padding: 2px 4px;
-    border: 1px solid black;
-    font-size: 11px;
+  width: 72px; padding: 6px 8px; font-size: .8125rem;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+  transition: border-color .15s, background .15s;
 }
+.setting-input:focus { outline: 0; border-color: #0ea5e9; background: #fff; }
+.setting-input::placeholder { color: #94a3b8; }
 
-/* w3 school instructions on how to hide spinner, might bring back? */
-input::-webkit-inner-spin-button,
-input::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+.hardware-node .node-action-btn {
+  width: 100%; margin: 10px 0 0; padding: 8px 12px;
+  font-size: .8125rem; font-weight: 500; color: #64748b;
+  background: #f1f5f9; border: 1px solid #e2e8f0;
+  border-radius: 0 0 9px 9px; cursor: pointer;
+  transition: background .15s, color .15s;
 }
+.hardware-node .node-action-btn:hover { background: #e2e8f0; color: #1e293b; }
+.hardware-node .node-message { font-size: .75rem; color: #22c55e; padding: 4px 14px 8px; margin: 0; }
 
-.setting-input[type="number"] {
-    -moz-appearance: textfield;
-}
+input::-webkit-inner-spin-button, input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.setting-input[type="number"] { -moz-appearance: textfield; }
