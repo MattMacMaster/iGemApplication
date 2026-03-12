@@ -103,12 +103,18 @@ body { margin: 0; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoo
   background: #fff; border: 1px solid #e5e7eb; border-radius: 6px;
   cursor: pointer; transition: background .15s, border-color .15s;
 }
+.Sidemenu__reset-btn:hover { background: #fef2f2; border-color: #fca5a5; }
+
 .Sidemenu__dark-mode-btn {
   width: 100%; padding: 8px 12px; font-size: 13px; color: #374151;
   background: #fff; border: 1px solid #e5e7eb; border-radius: 6px;
   cursor: pointer; transition: background .15s, border-color .15s;
 }
-.Sidemenu__reset-btn:hover { background: #fef2f2; border-color: #fca5a5; }
+.Sidemenu__dark-mode-btn:hover { 
+  background: #161616; 
+  border-color: var(--color-border-strong);
+  color: var(--color-secondary);
+}
 
 .system-panel {
   position: absolute; bottom: var(--space-lg); right: var(--space-lg);
