@@ -99,6 +99,15 @@ function App() {
     nodeId.current = 0;
   }, []);
 
+  const onToggleDarkMode = useCallback(() => {
+    const el = document.documentElement;
+    if (el.getAttribute('data-theme') === 'dark') {
+      el.removeAttribute('data-theme');
+    } else {
+      el.setAttribute('data-theme', 'dark');
+    }
+  }, []);
+
   // from HTML Drag and Drop API
   const onDragOver = useCallback((event) => {
     event.preventDefault();
@@ -175,6 +184,7 @@ function App() {
         isOpen={isMenuOpen}
         toggleMenu={() => setIsMenuOpen(!isMenuOpen)}
         onResetCanvas={onResetCanvas}
+        onToggleDarkMode={onToggleDarkMode}
       />
 
       {showSystemPanel && (
