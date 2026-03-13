@@ -79,6 +79,9 @@ function App() {
   const nodeId = useRef(0);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [showSystemPanel, setShowSystemPanel] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() =>
+    document.documentElement.getAttribute('data-theme') === 'dark'
+  );
 
   const nodeTypes = useMemo(
     () => ({
@@ -89,7 +92,7 @@ function App() {
   );
 
   // need these 3 basic ones for sure, look for more later if need more functionality 
-  const onNodesChange = useCallback((changes) => setNodes ((nds) => applyNodeChanges(changes, nds)), [setNodes]);
+  const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), [setNodes]);
   const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [setEdges]);
   const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
 
@@ -103,8 +106,10 @@ function App() {
     const el = document.documentElement;
     if (el.getAttribute('data-theme') === 'dark') {
       el.removeAttribute('data-theme');
+      setIsDarkMode(false);
     } else {
       el.setAttribute('data-theme', 'dark');
+      setIsDarkMode(true);
     }
   }, []);
 
@@ -143,7 +148,7 @@ function App() {
           id: newId,
           type: parsed.type ?? 'default',
           position,
-          data: { 
+          data: {
             label: parsed.label ?? 'Node',
             settings: parsed.settings ?? {}
           },
@@ -171,7 +176,7 @@ function App() {
           <h1 className="app-header__title">MOSMAGE Control Interface</h1>
         </div>
         <div className="app-header__actions">
-          <button 
+          <button
             className="btn-secondary"
             onClick={() => setShowSystemPanel(!showSystemPanel)}
           >
@@ -185,6 +190,7 @@ function App() {
         toggleMenu={() => setIsMenuOpen(!isMenuOpen)}
         onResetCanvas={onResetCanvas}
         onToggleDarkMode={onToggleDarkMode}
+        isDarkMode={isDarkMode}
       />
 
       {showSystemPanel && (
@@ -209,24 +215,27 @@ function App() {
         </div>
       )}
 
-    <div className="app-canvas-wrapper">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onInit={setReactFlowInstance}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-        isValidConnection={isValidConnection}
-        fitView
-      >
-        <Background />
-        <Controls position= 'top-right'/>
-      </ReactFlow>
-    </div>
+      <div className="app-canvas-wrapper">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          defaultEdgeOptions={{
+            animated: true
+          }}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onInit={setReactFlowInstance}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          isValidConnection={isValidConnection}
+          fitView
+        >
+          <Background />
+          <Controls position='top-right' />
+        </ReactFlow>
+      </div>
     </div>
   );
 }

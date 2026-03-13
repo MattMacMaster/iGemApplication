@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas, onToggleDarkMode }) => {
+const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas, onToggleDarkMode, isDarkMode }) => {
     const [isPartsOpen, setIsPartsOpen] = useState(true);
     const [isOptionsOpen, setIsOptionsOpen] = useState(true);
 
@@ -66,7 +66,7 @@ const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas, onToggleDarkMode }) => {
                             Reset Canvas
                         </button>
                         <button type="button" className="Sidemenu__dark-mode-btn" onClick={onToggleDarkMode}>
-                            Dark Mode
+                            {isDarkMode ? 'Light mode' : 'Dark Mode'}
                         </button>
                     </div>
                 )}
