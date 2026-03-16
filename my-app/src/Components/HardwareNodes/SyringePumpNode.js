@@ -46,7 +46,7 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
     }
   };
 
-    const handleBoardChange = (e) => {
+  const handleBoardChange = (e) => {
     setBoard(e.target.value);
 
     if (data.onSettingsChange) {

@@ -70,7 +70,9 @@ import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, Background, Con
 import '@xyflow/react/dist/style.css';
 import ThermometerNode from './Components/HardwareNodes/ThermometerNode';
 import SyringePumpNode from './Components/HardwareNodes/SyringePumpNode';
-
+import ElectroporatorNode from './Components/HardwareNodes/ElectroporatorNode';
+import PeristalticPumpNode from './Components/HardwareNodes/PeristalticPumpNode';
+import SpectrometerNode from './Components/HardwareNodes/SpectrometerNode';
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
@@ -87,6 +89,9 @@ function App() {
     () => ({
       thermometer: ThermometerNode,
       syringePump: SyringePumpNode,
+      spectrometer: SpectrometerNode,
+      electroporator: ElectroporatorNode,
+      peristalticPump: PeristalticPumpNode,
     }),
     []
   );
