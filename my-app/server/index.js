@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const i2c = require("i2c-bus");
 const { Gpio } = require("onoff");
+const db = require("./database");
 
 const app = express();
 const PORT = 5001;

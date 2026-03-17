@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas, onToggleDarkMode, isDarkMode }) => {
+const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas, onToggleDarkMode, isDarkMode, onSaveCycle, onLoadCycle }) => {
     const [isPartsOpen, setIsPartsOpen] = useState(true);
     const [isOptionsOpen, setIsOptionsOpen] = useState(true);
 
@@ -56,12 +56,17 @@ const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas, onToggleDarkMode, isDarkM
                     onClick={() => setIsOptionsOpen(!isOptionsOpen)}
                     aria-expanded={isOptionsOpen}
                 >
-                    {/* Options menu - mainly to prevent user accidentally reseting the canvas */}
                     <span>Options</span>
                     <span className="Sidemenu__chevron">{isOptionsOpen ? '▼' : '▶'}</span>
                 </button>
                 {isOptionsOpen && (
                     <div className="Sidemenu__panel-content">
+                        <button type="button" className="Sidemenu_save-btn" onClick={onSaveCycle}>
+                            Save Cycle
+                        </button>
+                        <button type="button" className="Sidemenu_load-btn" onClick={onLoadCycle}>
+                            Load Cycle
+                        </button>
                         <button type="button" className="Sidemenu__reset-btn" onClick={onResetCanvas}>
                             Reset Canvas
                         </button>
