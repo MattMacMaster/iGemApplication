@@ -14,11 +14,11 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
   const [message, setMessage] = useState("");
 
   const [axisVal, setAxis] = useState(
-    data.settings?.axisVal || ''
+    data.settings?.axis || ''
   );
 
   const [directionVal, setDirection] = useState(
-    data.settings?.directionVal || ''
+    data.settings?.direction || ''
   );
 
   const CallBackend = async (payload) => {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas, onToggleDarkMode, isDarkMode, onSaveCycle, onLoadCycle }) => {
+const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas, onToggleDarkMode, isDarkMode, onSaveCycle }) => {
     const [isPartsOpen, setIsPartsOpen] = useState(true);
     const [isOptionsOpen, setIsOptionsOpen] = useState(true);
 
@@ -64,7 +64,7 @@ const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas, onToggleDarkMode, isDarkM
                         <button type="button" className="Sidemenu_save-btn" onClick={onSaveCycle}>
                             Save Cycle
                         </button>
-                        <button type="button" className="Sidemenu_load-btn" onClick={onLoadCycle}>
+                        <button type="button" className="Sidemenu_load-btn">
                             Load Cycle
                         </button>
                         <button type="button" className="Sidemenu__reset-btn" onClick={onResetCanvas}>

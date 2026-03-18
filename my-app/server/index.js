@@ -1,8 +1,7 @@
-
 const express = require("express");
 const cors = require("cors");
-const i2c = require("i2c-bus");
-const { Gpio } = require("onoff");
+// const i2c = require("i2c-bus");
+// const { Gpio } = require("onoff");
 const db = require("./database");
 
 const app = express();
@@ -11,6 +10,7 @@ const PORT = 5001;
 app.use(cors());
 app.use(express.json());
 
+/*
 // Open I2C bus (bus 1 on Raspberry Pi)
 const bus = i2c.openSync(1);
 const SLAVE_ADDRESS = 0x04;
@@ -90,6 +90,63 @@ app.post("/api/instr", (req, res) => {
     console.error("I2C Error:", err);
     res.status(500).json({ error: "I2C failed" });
   }
+});
+*/
+
+// Saves a cycle
+app.post("/api/cycles", (req, res) => {
+  const { name, nodes, edges } = req.body;
+
+  if (!name || !Array.isArray(nodes)) {
+    return res.status(400).json({ error: "Name and nodes[] required" });
+  }
+
+  const cycleStmt = db.prepare(`
+    INSERT INTO cycles (name)
+    VALUES (?)
+  `);
+
+  const result = cycleStmt.run(name);
+  const cycleId = result.lastInsertRowid;
+
+  const nodeStmt = db.prepare(`
+    INSERT INTO nodes (cycleId, flowId, nodeType, positionX, positionY, jsonData)
+    VALUES (@cycleId, @flowId, @nodeType, @positionX, @positionY, @jsonData)
+  `);
+
+  const edgeStmt = db.prepare(`
+    INSERT INTO edges (cycleId, flowId, source, target)
+    VALUES (@cycleId, @flowId, @source, @target)
+  `);
+
+  const insertMany = db.transaction((nodesIn, edgesIn) => {
+
+    // insert nodes
+    for (const node of nodesIn) {
+      nodeStmt.run({
+        cycleId,
+        flowId: node.id,
+        nodeType: node.type ?? null,
+        positionX: node.position?.x ?? 0,
+        positionY: node.position?.y ?? 0,
+        jsonData: JSON.stringify(node.data ?? {}),
+      })
+    }
+
+    // insert edges
+    for (const edge of edgesIn) {
+      edgeStmt.run({
+        cycleId,
+        flowId: edge.id,
+        source: edge.source,
+        target: edge.target,
+      });
+    }
+  });
+
+  insertMany(nodes, edges);
+
+  res.status(201).json({ id: cycleId });
 });
 
 app.listen(PORT, () => {

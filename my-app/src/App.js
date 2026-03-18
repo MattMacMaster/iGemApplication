@@ -85,6 +85,22 @@ function App() {
     document.documentElement.getAttribute('data-theme') === 'dark'
   );
 
+  const updateNodeSettings = useCallback((id, update) => {
+    setNodes((prev) =>
+      prev.map((n) => {
+        if (n.id !== id) return n;
+        const prevSettings = n.data?.settings ?? {};
+        return {
+          ...n,
+          data: {
+            ...(n.data ?? {}),
+            settings: { ...prevSettings, ...(update ?? {}) },
+          },
+        };
+      })
+    );
+  }, []);
+
   const nodeTypes = useMemo(
     () => ({
       thermometer: ThermometerNode,
@@ -100,6 +116,33 @@ function App() {
   const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), [setNodes]);
   const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [setEdges]);
   const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
+
+  const onSaveCycle = useCallback(async () => {
+    const name = window.prompt('Name this cycle:');
+    if (!name) return;
+
+    try {
+      const res = await fetch('http://localhost:5001/api/cycles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, nodes, edges }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('Save failed:', err);
+        alert('Failed to save cycle.');
+        return;
+      }
+
+      const data = await res.json();
+      console.log('Saved cycle with id:', data.id);
+      alert('Cycle saved!');
+    } catch (e) {
+      console.error('Save error:', e);
+      alert('Error saving cycle.');
+    }
+  }, [nodes]);
 
   const onResetCanvas = useCallback(() => {
     setNodes([]);
@@ -155,12 +198,13 @@ function App() {
           position,
           data: {
             label: parsed.label ?? 'Node',
-            settings: parsed.settings ?? {}
+            settings: parsed.settings ?? {},
+            onSettingsChange: (update) => updateNodeSettings(newId, update),
           },
         })
       );
     },
-    [reactFlowInstance]
+    [reactFlowInstance, updateNodeSettings]
   );
 
   const isValidConnection = useCallback((connection) => {
@@ -196,6 +240,7 @@ function App() {
         onResetCanvas={onResetCanvas}
         onToggleDarkMode={onToggleDarkMode}
         isDarkMode={isDarkMode}
+        onSaveCycle={onSaveCycle}
       />
 
       {showSystemPanel && (
