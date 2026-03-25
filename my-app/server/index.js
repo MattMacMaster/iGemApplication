@@ -120,9 +120,11 @@ app.post("/api/cycles", (req, res) => {
   `);
 
   const insertMany = db.transaction((nodesIn, edgesIn) => {
+    const safeNodes = Array.isArray(nodesIn) ? nodesIn : [];
+    const safeEdges = Array.isArray(edgesIn) ? edgesIn : [];
 
     // insert nodes
-    for (const node of nodesIn) {
+    for (const node of safeNodes) {
       nodeStmt.run({
         cycleId,
         flowId: node.id,
@@ -130,11 +132,11 @@ app.post("/api/cycles", (req, res) => {
         positionX: node.position?.x ?? 0,
         positionY: node.position?.y ?? 0,
         jsonData: JSON.stringify(node.data ?? {}),
-      })
+      });
     }
 
     // insert edges
-    for (const edge of edgesIn) {
+    for (const edge of safeEdges) {
       edgeStmt.run({
         cycleId,
         flowId: edge.id,
@@ -148,6 +150,57 @@ app.post("/api/cycles", (req, res) => {
 
   res.status(201).json({ id: cycleId });
 });
+
+// Retrieves all cycles
+app.get("/api/cycles", (req, res) => {
+  const stmt = db.prepare(`
+    SELECT id, name FROM cycles
+    ORDER BY name
+  `);
+
+  const rows = stmt.all();
+  res.json(rows);
+});
+
+// Retrieve a single cycle
+app.get("/api/cycles/:id", (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const nodesStmt = db.prepare(`SELECT * FROM nodes WHERE cycleId = ?`);
+    const edgesStmt = db.prepare(`SELECT * FROM edges WHERE cycleId = ?`);
+    
+    const nodes = nodesStmt.all(id);
+    const edges = edgesStmt.all(id);
+    
+    // Format nodes
+    const formattedNodes = nodes.map(n => ({
+      id: n.flowId,
+      type: n.nodeType,
+      position: { x: n.positionX, y: n.positionY },
+      data: JSON.parse(n.jsonData)
+    }));
+    
+    // Format edges
+    const formattedEdges = edges.map(e => ({
+      id: e.flowId,
+      source: e.source,
+      target: e.target
+    }));
+    
+    res.json({ nodes: formattedNodes, edges: formattedEdges });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load cycle" });
+  }
+});
+
+// Let user delete a saved cycle
+app.delete("/api/cycles/:id", (req, res) => {
+  db.prepare(` DELETE FROM cycles WHERE id = ? `)
+  res.json({ message: "Cycles deleted"})
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

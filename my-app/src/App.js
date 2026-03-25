@@ -84,6 +84,8 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState(() =>
     document.documentElement.getAttribute('data-theme') === 'dark'
   );
+  const [showLoadMenu, setShowLoadMenu] = useState(false);
+  const [savedCycles, setSavedCycles] = useState([]);
 
   const updateNodeSettings = useCallback((id, update) => {
     setNodes((prev) =>
@@ -116,6 +118,45 @@ function App() {
   const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), [setNodes]);
   const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [setEdges]);
   const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
+
+  const handleOpenLoadMenu = useCallback(async () => {
+    try {
+      const res = await fetch('http://localhost:5001/api/cycles');
+      if (res.ok) {
+        const data = await res.json();
+        setSavedCycles(data);
+        setShowLoadMenu(true);
+      }
+    } catch (e) {
+      console.error("Failed to load cycles", e);
+      alert("Failed to connect to backend");
+    }
+  }, []);
+
+  const handleLoadCycle = useCallback(async (id) => {
+    try {
+      const res = await fetch('http://localhost:5001/api/cycles/${id}');
+      if (res.ok) {
+        const { nodes : loadedNodes, edges: loadedEdges} = await res.json();
+        
+        const nodesWithCallbacks = loadedNodes.map(n => ({
+          ...n,
+          data: {
+            ...n.data,
+            onSettingsChange: (update) => updateNodeSettings(n.id, update)
+          }
+        }));
+        
+        setNodes(nodesWithCallbacks);
+        setEdges(loadedEdges);
+        setShowLoadMenu(false);
+      }
+    } catch (e) {
+      console.error("Failed to load cycle", e);
+      alert("Failed to connect to backend");
+    }
+  }, []);
+    
 
   const onSaveCycle = useCallback(async () => {
     const name = window.prompt('Name this cycle:');
@@ -242,6 +283,8 @@ function App() {
         isDarkMode={isDarkMode}
         onSaveCycle={onSaveCycle}
       />
+
+      {/* write da load menu here */}
 
       {showSystemPanel && (
         <div className="system-panel">
