@@ -165,14 +165,14 @@ app.get("/api/cycles", (req, res) => {
 // Retrieve a single cycle
 app.get("/api/cycles/:id", (req, res) => {
   const { id } = req.params;
-  
+
   try {
     const nodesStmt = db.prepare(`SELECT * FROM nodes WHERE cycleId = ?`);
     const edgesStmt = db.prepare(`SELECT * FROM edges WHERE cycleId = ?`);
-    
+
     const nodes = nodesStmt.all(id);
     const edges = edgesStmt.all(id);
-    
+
     // Format nodes
     const formattedNodes = nodes.map(n => ({
       id: n.flowId,
@@ -180,14 +180,14 @@ app.get("/api/cycles/:id", (req, res) => {
       position: { x: n.positionX, y: n.positionY },
       data: JSON.parse(n.jsonData)
     }));
-    
+
     // Format edges
     const formattedEdges = edges.map(e => ({
       id: e.flowId,
       source: e.source,
       target: e.target
     }));
-    
+
     res.json({ nodes: formattedNodes, edges: formattedEdges });
   } catch (err) {
     console.error(err);
@@ -197,10 +197,12 @@ app.get("/api/cycles/:id", (req, res) => {
 
 // Let user delete a saved cycle
 app.delete("/api/cycles/:id", (req, res) => {
-  db.prepare(` DELETE FROM cycles WHERE id = ? `)
-  res.json({ message: "Cycles deleted"})
+  const result = db.prepare(` DELETE FROM cycles WHERE id = ? `).run(req.params.id);
+  if (result.changes === 0) {
+    return res.status(404).json({ error: "Cycle not found" });
+  }
+  res.json({ message: "Cycle deleted" })
 });
-
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

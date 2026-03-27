@@ -12,6 +12,8 @@ if (!fs.existsSync(dataDir)) {
 
 const db = new Database(dbPath);
 
+// Enforce foreign keys. Need this for ON DELETE CASCADE.
+db.pragma('foreign_keys = ON');
 db.exec(`
     CREATE TABLE IF NOT EXISTS cycles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

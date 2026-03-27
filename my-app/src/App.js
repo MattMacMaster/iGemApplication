@@ -87,6 +87,7 @@ function App() {
   const [showLoadMenu, setShowLoadMenu] = useState(false);
   const [savedCycles, setSavedCycles] = useState([]);
 
+  // Updates a node's settings when form inputs change (like steps, axis, direction)
   const updateNodeSettings = useCallback((id, update) => {
     setNodes((prev) =>
       prev.map((n) => {
@@ -101,6 +102,70 @@ function App() {
         };
       })
     );
+  }, []);
+
+  const handleOpenLoadMenu = useCallback(async () => {
+    setShowLoadMenu(true);
+    try {
+      const res = await fetch('http://localhost:5001/api/cycles');
+      if (!res.ok) {
+        setSavedCycles([]);
+        return;
+      }
+
+      const data = await res.json();
+      setSavedCycles(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error('Load error:', e);
+      alert('Failed to load cycles.');
+      setSavedCycles([]);
+    }
+  }, []);
+
+  const handleLoadCycle = useCallback(async (id) => {
+    try {
+      const res = await fetch(`http://localhost:5001/api/cycles/${id}`);
+      if (!res.ok) {
+        alert('Failed to load cycle.');
+        return;
+      }
+      const data = await res.json();
+      setNodes(
+        data.nodes.map((node) => ({
+          ...node,
+          data: {
+            ...node.data,
+            onSettingsChange: (update) => updateNodeSettings(node.id, update),
+          },
+        }))
+      );
+      setEdges(data.edges);
+      setShowLoadMenu(false);
+    } catch (e) {
+      console.error('Failed to load cycle:', e);
+      alert('Failed to load cycle.');
+    }
+  }, [updateNodeSettings]);
+
+  const deleteCycle = useCallback(async (cycleId) => {
+    if (!window.confirm("Are you sure you want to delete this cycle?")) return;
+
+    try {
+      const res = await fetch(`http://localhost:5001/api/cycles/${cycleId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) return;
+
+      const listRes = await fetch('http://localhost:5001/api/cycles');
+      if (listRes.ok) {
+        const data = await listRes.json();
+        setSavedCycles(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      console.error('Delete error:', e);
+      alert('Failed to delete cycle.');
+    }
   }, []);
 
   const nodeTypes = useMemo(
@@ -118,45 +183,6 @@ function App() {
   const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), [setNodes]);
   const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [setEdges]);
   const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
-
-  const handleOpenLoadMenu = useCallback(async () => {
-    try {
-      const res = await fetch('http://localhost:5001/api/cycles');
-      if (res.ok) {
-        const data = await res.json();
-        setSavedCycles(data);
-        setShowLoadMenu(true);
-      }
-    } catch (e) {
-      console.error("Failed to load cycles", e);
-      alert("Failed to connect to backend");
-    }
-  }, []);
-
-  const handleLoadCycle = useCallback(async (id) => {
-    try {
-      const res = await fetch('http://localhost:5001/api/cycles/${id}');
-      if (res.ok) {
-        const { nodes : loadedNodes, edges: loadedEdges} = await res.json();
-        
-        const nodesWithCallbacks = loadedNodes.map(n => ({
-          ...n,
-          data: {
-            ...n.data,
-            onSettingsChange: (update) => updateNodeSettings(n.id, update)
-          }
-        }));
-        
-        setNodes(nodesWithCallbacks);
-        setEdges(loadedEdges);
-        setShowLoadMenu(false);
-      }
-    } catch (e) {
-      console.error("Failed to load cycle", e);
-      alert("Failed to connect to backend");
-    }
-  }, []);
-    
 
   const onSaveCycle = useCallback(async () => {
     const name = window.prompt('Name this cycle:');
@@ -178,12 +204,12 @@ function App() {
 
       const data = await res.json();
       console.log('Saved cycle with id:', data.id);
-      alert('Cycle saved!');
+      alert('Cycle saved');
     } catch (e) {
       console.error('Save error:', e);
       alert('Error saving cycle.');
     }
-  }, [nodes]);
+  }, [nodes, edges]);
 
   const onResetCanvas = useCallback(() => {
     setNodes([]);
@@ -282,9 +308,50 @@ function App() {
         onToggleDarkMode={onToggleDarkMode}
         isDarkMode={isDarkMode}
         onSaveCycle={onSaveCycle}
+        onOpenLoadMenu={handleOpenLoadMenu}
       />
 
-      {/* write da load menu here */}
+      {showLoadMenu && (
+        <div className="loadmenu-overlay" role="dialog" aria-modal="true" aria-labelledby="loadmenu-title">
+          <div className="loadmenu">
+            <div className="loadmenu__header">
+              <div id="loadmenu-title" className="loadmenu__title">
+                Load cycle
+              </div>
+              <button type="button" className="btn-secondary" onClick={() => setShowLoadMenu(false)}>
+                Close
+              </button>
+            </div>
+            <div className="loadmenu__body">
+              {savedCycles.length === 0 ? (
+                <p className="loadmenu__empty">No saved cycles found.</p>
+              ) : (
+                <ul className="loadmenu__list">
+                  {savedCycles.map((cycle) => (
+                    <li key={cycle.id} className="loadmenu__row">
+                      <button
+                        type="button"
+                        className="loadmenu__item-btn"
+                        onClick={() => handleLoadCycle(cycle.id)}
+                      >
+                        <span className="loadmenu__item-name">{cycle.name}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="loadmenu__delete-btn"
+                        title="Delete this cycle"
+                        onClick={() => deleteCycle(cycle.id)}
+                      >
+                        Delete
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showSystemPanel && (
         <div className="system-panel">
