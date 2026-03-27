@@ -2,6 +2,7 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
+// SQLite file location: server/data/app.db
 const dataDir = path.join(__dirname, 'data');
 const dbPath = path.join(dataDir, 'app.db');
 
@@ -14,6 +15,12 @@ const db = new Database(dbPath);
 
 // Enforce foreign keys. Need this for ON DELETE CASCADE.
 db.pragma('foreign_keys = ON');
+
+// Schema overview:
+// - cycles: one row per saved, user-named canvas
+// - nodes: node state for each cycle (position + jsonData payload)
+// - edges: connections for each cycle
+// ON DELETE CASCADE removes related nodes/edges when a cycle is deleted.
 db.exec(`
     CREATE TABLE IF NOT EXISTS cycles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

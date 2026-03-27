@@ -93,7 +93,10 @@ app.post("/api/instr", (req, res) => {
 });
 */
 
-// Saves a cycle
+/**
+ * POST /api/cycles
+ * Saves current canvas as a named cycle.
+ */
 app.post("/api/cycles", (req, res) => {
   const { name, nodes, edges } = req.body;
 
@@ -119,6 +122,10 @@ app.post("/api/cycles", (req, res) => {
     VALUES (@cycleId, @flowId, @source, @target)
   `);
 
+  /**
+   * Inserts many nodes and edges into the DB.
+   * Either all nodes/edges succeed or none are inserted.
+   */
   const insertMany = db.transaction((nodesIn, edgesIn) => {
     const safeNodes = Array.isArray(nodesIn) ? nodesIn : [];
     const safeEdges = Array.isArray(edgesIn) ? edgesIn : [];
@@ -151,7 +158,10 @@ app.post("/api/cycles", (req, res) => {
   res.status(201).json({ id: cycleId });
 });
 
-// Retrieves all cycles
+/**
+ * GET /api/cycles
+ * Retrieves all cycles from the DB.
+ */
 app.get("/api/cycles", (req, res) => {
   const stmt = db.prepare(`
     SELECT id, name FROM cycles
@@ -162,7 +172,10 @@ app.get("/api/cycles", (req, res) => {
   res.json(rows);
 });
 
-// Retrieve a single cycle
+/**
+ * GET /api/cycles/:id
+ * Retrieves a single cycle from the DB.
+ */
 app.get("/api/cycles/:id", (req, res) => {
   const { id } = req.params;
 
@@ -195,7 +208,10 @@ app.get("/api/cycles/:id", (req, res) => {
   }
 });
 
-// Let user delete a saved cycle
+/**
+ * DELETE /api/cycles/:id
+ * Deletes a cycle from the DB.
+ */
 app.delete("/api/cycles/:id", (req, res) => {
   const result = db.prepare(` DELETE FROM cycles WHERE id = ? `).run(req.params.id);
   if (result.changes === 0) {

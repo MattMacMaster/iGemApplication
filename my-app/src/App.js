@@ -1,68 +1,4 @@
 
-/*
-import { useState } from "react";
-
-function App() {
-  const [message, setMessage] = useState("");
-
-const callBackend = async (payload) => {
-  try {
-    const res = await fetch("http://localhost:5001/api/instr", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload), // convert here
-    });
-
-    const data = await res.json();
-    setMessage(data.message);
-  } catch (err) {
-    console.error("Backend error:", err);
-  }
-};
-
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-
-        <p>Lethbridge iGem</p>
-
-        <button onClick={() =>
-          callBackend({
-          type: "Motor",
-          board: 3,
-          axis: "Y",
-          compInstr: { steps: 1000, Direction: "up" }
-          })
-          }>
-          Test backend - Up
-        </button>
-
-        <button onClick={() =>
-          callBackend({
-          type: "Motor",
-          board: 3,
-          axis: "Y",
-          compInstr: { steps: 1000, Direction: "down" } //This could be binary 0:down etc
-          })
-          }>
-          Test backend - Down
-        </button>
-
-        {message && <p>{message}</p>}
-
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-          */
 import './App.css';
 import Sidemenu from './Components/Sidemenu';
 import { useState, useCallback, useRef, useMemo } from 'react';
@@ -87,7 +23,9 @@ function App() {
   const [showLoadMenu, setShowLoadMenu] = useState(false);
   const [savedCycles, setSavedCycles] = useState([]);
 
-  // Updates a node's settings when form inputs change (like steps, axis, direction)
+  /**
+   * Updates a node's settings when its inputs are changed (like steps, axis, direction)
+   */
   const updateNodeSettings = useCallback((id, update) => {
     setNodes((prev) =>
       prev.map((n) => {
@@ -104,11 +42,15 @@ function App() {
     );
   }, []);
 
+  /**
+   * Fetches all saved cycles and opens the Load menu.
+   */
   const handleOpenLoadMenu = useCallback(async () => {
     setShowLoadMenu(true);
     try {
       const res = await fetch('http://localhost:5001/api/cycles');
       if (!res.ok) {
+        // Keep UI stable even if backend responds with an error.
         setSavedCycles([]);
         return;
       }
@@ -122,6 +64,10 @@ function App() {
     }
   }, []);
 
+  /**
+   * Loads one saved cycle by id and places it back on the canvas.
+   * onSettingsChange is reattached because functions aren't stored in DB JSON.
+   */
   const handleLoadCycle = useCallback(async (id) => {
     try {
       const res = await fetch(`http://localhost:5001/api/cycles/${id}`);
@@ -139,6 +85,7 @@ function App() {
           },
         }))
       );
+      // Replace current canvas graph with the loaded one.
       setEdges(data.edges);
       setShowLoadMenu(false);
     } catch (e) {
@@ -147,6 +94,9 @@ function App() {
     }
   }, [updateNodeSettings]);
 
+  /**
+   * Deletes a saved cycle by id.
+   */
   const deleteCycle = useCallback(async (cycleId) => {
     if (!window.confirm("Are you sure you want to delete this cycle?")) return;
 
@@ -157,6 +107,7 @@ function App() {
 
       if (!res.ok) return;
 
+      // Refresh list from DB so menu always reflects server truth.
       const listRes = await fetch('http://localhost:5001/api/cycles');
       if (listRes.ok) {
         const data = await listRes.json();
@@ -184,6 +135,9 @@ function App() {
   const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [setEdges]);
   const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
 
+  /**
+   * Saves the current canvas graph as a new cycle.
+   */
   const onSaveCycle = useCallback(async () => {
     const name = window.prompt('Name this cycle:');
     if (!name) return;
@@ -211,12 +165,18 @@ function App() {
     }
   }, [nodes, edges]);
 
+  /**
+   * Resets the canvas.
+   */
   const onResetCanvas = useCallback(() => {
     setNodes([]);
     setEdges([]);
     nodeId.current = 0;
   }, []);
 
+  /**
+   * Toggles the dark mode.
+   */
   const onToggleDarkMode = useCallback(() => {
     const el = document.documentElement;
     if (el.getAttribute('data-theme') === 'dark') {
@@ -228,13 +188,19 @@ function App() {
     }
   }, []);
 
-  // from HTML Drag and Drop API
+  /**
+   * Handles drag over events.
+   * Drom the HTML Drag and Drop API.
+   */
   const onDragOver = useCallback((event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  // from HTML Drag and Drop API too
+  /**
+   * Handles drop events.
+   * From the HTML Drag and Drop API.
+   */
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
@@ -274,6 +240,9 @@ function App() {
     [reactFlowInstance, updateNodeSettings]
   );
 
+  /**
+   * Checks if a connection is valid (no duplicate connections).
+   */
   const isValidConnection = useCallback((connection) => {
     const sourceKey = (v) => v ?? null;
     const hasConnection = edges.some(
