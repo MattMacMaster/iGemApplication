@@ -266,8 +266,6 @@ try {
         );
         setIsRunning(false);
         setRunProgress(null);
-        setNodes((nds) =>
-        );
         return;
       }
 
@@ -276,8 +274,6 @@ try {
 
     setIsRunning(false);
     setRunProgress(null);
-    setNodes((nds) =>
-    );
   }, [isRunning, nodes.length]);
 
   return (
