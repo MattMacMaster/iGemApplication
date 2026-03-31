@@ -123,9 +123,9 @@ function App() {
 }, []);
 
   // need these 3 basic ones for sure, look for more later if need more functionality 
-  const onNodesChange = useCallback((changes) => setNodes ((nds) => applyNodeChanges(changes, nds)), [setNodes]);
-  const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [setEdges]);
-  const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
+  const onNodesChange = useCallback((changes) => setNodes ((nds) => applyNodeChanges(changes, nds)), []);
+  const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
+  const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), []);
 
   const onResetCanvas = useCallback(() => {
     if (isRunning) return;
@@ -231,7 +231,7 @@ try {
       nds.map((n) => ({
         ...n,
         draggable: false,
-        data: { ...n.data, runStatus: 'pending', errorMsg: null, isLocked: true },
+        data: { ...n.data, runStatus: 'pending', errorMsg: null},
       }))
     );
 
@@ -241,8 +241,12 @@ try {
       setNodes((nds) =>
         nds.map((n) => n.id === id ? { ...n, data: { ...n.data, runStatus: 'running' } } : n)
       );
-      setRunProgress({ current: i + 1, total });
-
+      setRunProgress({
+        current: i + 1,
+        total,
+        label: targetNode.data.label,
+        board: targetNode.data.settings?.boardVal ?? '?',
+});
       let targetNode;
       setNodes((nds) => { targetNode = nds.find((n) => n.id === id); return nds; });
       await sleep(0);
@@ -263,7 +267,6 @@ try {
         setIsRunning(false);
         setRunProgress(null);
         setNodes((nds) =>
-          nds.map((n) => ({ ...n, draggable: true, data: { ...n.data, isLocked: false } }))
         );
         return;
       }
@@ -274,7 +277,6 @@ try {
     setIsRunning(false);
     setRunProgress(null);
     setNodes((nds) =>
-      nds.map((n) => ({ ...n, draggable: true, data: { ...n.data, isLocked: false } }))
     );
   }, [isRunning, nodes.length]);
 
@@ -301,8 +303,14 @@ try {
                 />
               </div>
               <span className="run-progress-label">
-                {runProgress.current} / {runProgress.total}
+                {runProgress.current} / {runProgress.total} | Current: {runProgress.label}, Board: {runProgress.board}
               </span>
+              <button onClick={() => {
+                setIsRunning(false);
+                setRunProgress(null);
+              }}>
+                Cancel
+              </button>
             </div>
           )}
         </div>
@@ -356,15 +364,14 @@ try {
         </div>
       )}
 
-    {isRunning && <div className="canvas-lock-overlay" />}
     <div style={{ height: '100%', width: '100%' }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        onNodesChange={isRunning ? undefined : onNodesChange}
-        onEdgesChange={isRunning ? undefined : onEdgesChange}
-        onConnect={isRunning ? undefined : onConnect}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
         nodesDraggable={!isRunning}
         nodesConnectable={!isRunning}
         elementsSelectable={!isRunning}
