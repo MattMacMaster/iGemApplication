@@ -23,6 +23,13 @@ function App() {
   const [showLoadMenu, setShowLoadMenu] = useState(false);
   const [savedCycles, setSavedCycles] = useState([]);
 
+  // popup useStates. i believe this is all we need for the popups.
+  const [showSaveNameCycle, setShowSaveNameCycle] = useState(false);
+  const [saveCycleName, setSaveCycleName] = useState('');
+  const [saveCycleError, setSaveCycleError] = useState(null);
+  const [showCycleSavedSuccess, setShowCycleSavedSuccess] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   /**
    * Updates a node's settings when its inputs are changed (like steps, axis, direction)
    */
