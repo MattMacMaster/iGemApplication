@@ -1,6 +1,18 @@
 import { useState } from 'react';
 
-const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas, onToggleDarkMode, isDarkMode, onSaveCycle, onOpenLoadMenu }) => {
+const Sidemenu = ({
+    isOpen,
+    toggleMenu,
+    onResetCanvas,
+    onToggleDarkMode,
+    isDarkMode,
+    onSaveCycle,
+    onOpenLoadMenu,
+    onSaveEdits,
+    exitEditMode,
+    editingCycleId,
+    editingCycleName,
+}) => {
     const [isPartsOpen, setIsPartsOpen] = useState(true);
     const [isOptionsOpen, setIsOptionsOpen] = useState(true);
 
@@ -61,9 +73,23 @@ const Sidemenu = ({ isOpen, toggleMenu, onResetCanvas, onToggleDarkMode, isDarkM
                 </button>
                 {isOptionsOpen && (
                     <div className="Sidemenu__panel-content">
-                        <button type="button" className="Sidemenu_save-btn" onClick={onSaveCycle}>
-                            Save Cycle
-                        </button>
+                        {editingCycleId != null ? (
+                            <>
+                                <div className="Sidemenu__editing-label">
+                                    Editing: {editingCycleName || editingCycleId}
+                                </div>
+                                <button type="button" className="Sidemenu_save-btn" onClick={onSaveEdits}>
+                                    Save Changes
+                                </button>
+                                <button type="button" className="Sidemenu__reset-btn" onClick={exitEditMode}>
+                                    Exit Edit Mode
+                                </button>
+                            </>
+                        ) : (
+                            <button type="button" className="Sidemenu_save-btn" onClick={onSaveCycle}>
+                                Save Cycle
+                            </button>
+                        )}
                         <button type="button" className="Sidemenu_load-btn" onClick={onOpenLoadMenu}>
                             Load Cycle
                         </button>

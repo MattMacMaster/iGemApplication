@@ -375,7 +375,7 @@ function App() {
                       <button
                         type="button"
                         className="loadmenu__edit-btn"
-                        onclick={() => handleEditCycle(cycle)}
+                        onClick={() => handleEditCycle(cycle)}
                       >
                         Edit
                       </button>
