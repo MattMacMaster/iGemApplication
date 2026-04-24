@@ -22,8 +22,8 @@ function App() {
   );
   const [showLoadMenu, setShowLoadMenu] = useState(false);
   const [savedCycles, setSavedCycles] = useState([]);
-  const [editingCycleId, setEditingCycleId] = useState(null);
-  const [editingCycleName, setEditingCycleName] = useState('');
+  const [activeCycleId, setActiveCycleId] = useState(null);
+  const [activeCycleName, setActiveCycleName] = useState('');
 
   /**
    * Updates a node's settings when its inputs are changed (like steps, axis, direction)
@@ -44,65 +44,32 @@ function App() {
     );
   }, []);
 
-  const handleEditCycle = useCallback(
-    async (cycle) => {
-      try {
-        const res = await fetch(`http://localhost:5001/api/cycles/${cycle.id}`);
-        if (!res.ok) {
-          alert('Failed to load cycle.');
-          return;
-        }
-        const data = await res.json();
-        setNodes(
-          data.nodes.map((node) => ({
-            ...node,
-            data: {
-              ...node.data,
-              onSettingsChange: (update) => updateNodeSettings(node.id, update),
-            },
-          }))
-        );
+  const saveAsNewCycle = useCallback(async (name) => {
+    const trimmed = (name ?? '').trim();
+    if (!trimmed) return;
 
-        setEdges(data.edges);
-        setShowLoadMenu(false);
-
-        setEditingCycleId(cycle.id);
-        setEditingCycleName(cycle.name);
-      } catch (e) {
-        console.error('Failed to edit cycle:', e);
-        alert('Failed to load cycle.');
-      }
-    },
-    [updateNodeSettings]
-  );
-
-  const onSaveEdits = useCallback(async () => {
-    if (!editingCycleId) return;
     try {
-      const res = await fetch(`http://localhost:5001/api/cycles/${editingCycleId}`, {
-        method: 'PUT',
+      const res = await fetch('http://localhost:5001/api/cycles', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nodes, edges }),
+        body: JSON.stringify({ name: trimmed, nodes, edges }),
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         console.error('Save failed:', err);
-        alert('Failed to save cycle edits.');
+        alert('Failed to save cycle.');
         return;
       }
 
-      alert('Edits saved');
+      const data = await res.json();
+      console.log('Saved cycle with id:', data.id);
+      alert('Cycle saved');
     } catch (e) {
       console.error('Save error:', e);
-      alert('Failed to save cycle edits.');
+      alert('Error saving cycle.');
     }
-  }, [editingCycleId, nodes, edges]);
-
-  const exitEditMode = useCallback(() => {
-    setEditingCycleId(null);
-    setEditingCycleName('');
-  }, []);
+  }, [nodes, edges]);
 
   /**
    * Fetches all saved cycles and opens the Load menu.
@@ -130,9 +97,9 @@ function App() {
    * Loads one saved cycle by id and places it back on the canvas.
    * onSettingsChange is reattached because functions aren't stored in DB JSON.
    */
-  const handleLoadCycle = useCallback(async (id) => {
+  const handleLoadCycle = useCallback(async (cycle) => {
     try {
-      const res = await fetch(`http://localhost:5001/api/cycles/${id}`);
+      const res = await fetch(`http://localhost:5001/api/cycles/${cycle.id}`);
       if (!res.ok) {
         alert('Failed to load cycle.');
         return;
@@ -150,6 +117,10 @@ function App() {
       // Replace current canvas graph with the loaded one.
       setEdges(data.edges);
       setShowLoadMenu(false);
+
+      // Track which saved cycle is currently loaded
+      setActiveCycleId(cycle.id);
+      setActiveCycleName(cycle.name ?? '');
     } catch (e) {
       console.error('Failed to load cycle:', e);
       alert('Failed to load cycle.');
@@ -201,31 +172,48 @@ function App() {
    * Saves the current canvas graph as a new cycle.
    */
   const onSaveCycle = useCallback(async () => {
-    const name = window.prompt('Name this cycle:');
-    if (!name) return;
+    // Currently set up for Ok = Overwrite, Cancel = Save as new but a custom popup would be much clearer
+    if (activeCycleId != null) {
+      const label = activeCycleName ? `“${activeCycleName}”` : `#${activeCycleId}`;
+      const overwrite = window.confirm(
+        `Overwrite ${label}?\n\nOK = Overwrite\nCancel = Save as new`
+      );
 
-    try {
-      const res = await fetch('http://localhost:5001/api/cycles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, nodes, edges }),
-      });
+      if (overwrite) {
+        try {
+          const res = await fetch(`http://localhost:5001/api/cycles/${activeCycleId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nodes, edges }),
+          });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        console.error('Save failed:', err);
-        alert('Failed to save cycle.');
-        return;
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            console.error('Overwrite failed:', err);
+            alert('Failed to overwrite cycle.');
+            return;
+          }
+
+          alert('Cycle overwritten');
+          return;
+        } catch (e) {
+          console.error('Overwrite error:', e);
+          alert('Error overwriting cycle.');
+          return;
+        }
       }
 
-      const data = await res.json();
-      console.log('Saved cycle with id:', data.id);
-      alert('Cycle saved');
-    } catch (e) {
-      console.error('Save error:', e);
-      alert('Error saving cycle.');
+      const newName = window.prompt('Name the NEW cycle (save as new):');
+      if (!newName) return;
+      await saveAsNewCycle(newName);
+      return;
     }
-  }, [nodes, edges]);
+
+    // default to “save as new”
+    const name = window.prompt('Name this cycle:');
+    if (!name) return;
+    await saveAsNewCycle(name);
+  }, [activeCycleId, activeCycleName, nodes, edges, saveAsNewCycle]);
 
   /**
    * Resets the canvas.
@@ -234,6 +222,8 @@ function App() {
     setNodes([]);
     setEdges([]);
     nodeId.current = 0;
+    setActiveCycleId(null);
+    setActiveCycleName('');
   }, []);
 
   /**
@@ -340,11 +330,6 @@ function App() {
         isDarkMode={isDarkMode}
         onSaveCycle={onSaveCycle}
         onOpenLoadMenu={handleOpenLoadMenu}
-        onEditCycle={handleEditCycle}
-        onSaveEdits={onSaveEdits}
-        exitEditMode={exitEditMode}
-        editingCycleId={editingCycleId}
-        editingCycleName={editingCycleName}
       />
 
       {showLoadMenu && (
@@ -368,16 +353,9 @@ function App() {
                       <button
                         type="button"
                         className="loadmenu__item-btn"
-                        onClick={() => handleLoadCycle(cycle.id)}
+                        onClick={() => handleLoadCycle(cycle)}
                       >
                         <span className="loadmenu__item-name">{cycle.name}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="loadmenu__edit-btn"
-                        onClick={() => handleEditCycle(cycle)}
-                      >
-                        Edit
                       </button>
                       <button
                         type="button"
