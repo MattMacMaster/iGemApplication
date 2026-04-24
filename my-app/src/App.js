@@ -22,13 +22,8 @@ function App() {
   );
   const [showLoadMenu, setShowLoadMenu] = useState(false);
   const [savedCycles, setSavedCycles] = useState([]);
-
-  // popup useStates. i believe this is all we need for the popups.
-  const [showSaveNameCycle, setShowSaveNameCycle] = useState(false);
-  const [saveCycleName, setSaveCycleName] = useState('');
-  const [saveCycleError, setSaveCycleError] = useState(null);
-  const [showCycleSavedSuccess, setShowCycleSavedSuccess] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editingCycleId, setEditingCycleId] = useState(null);
+  const [editingCycleName, setEditingCycleName] = useState('');
 
   /**
    * Updates a node's settings when its inputs are changed (like steps, axis, direction)
@@ -47,6 +42,66 @@ function App() {
         };
       })
     );
+  }, []);
+
+  const handleEditCycle = useCallback(
+    async (cycle) => {
+      try {
+        const res = await fetch(`http://localhost:5001/api/cycles/${cycle.id}`);
+        if (!res.ok) {
+          alert('Failed to load cycle.');
+          return;
+        }
+        const data = await res.json();
+        setNodes(
+          data.nodes.map((node) => ({
+            ...node,
+            data: {
+              ...node.data,
+              onSettingsChange: (update) => updateNodeSettings(node.id, update),
+            },
+          }))
+        );
+
+        setEdges(data.edges);
+        setShowLoadMenu(false);
+
+        setEditingCycleId(cycle.id);
+        setEditingCycleName(cycle.name);
+      } catch (e) {
+        console.error('Failed to edit cycle:', e);
+        alert('Failed to load cycle.');
+      }
+    },
+    [updateNodeSettings]
+  );
+
+  const onSaveEdits = useCallback(async () => {
+    if (!editingCycleId) return;
+    try {
+      const res = await fetch(`http://localhost:5001/api/cycles/${editingCycleId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nodes, edges }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('Save failed:', err);
+        alert('Failed to save cycle edits.');
+        return;
+      }
+
+      alert('Edits saved');
+    } catch (e) {
+      console.error('Save error:', e);
+      alert('Failed to save cycle edits.');
+    }
+  }, [editingCycleId, nodes, edges]);
+
+  const exitEditMode = useCallback(() => {
+    setEditingCycleId(null);
+    setEditingCycleName('');
   }, []);
 
   /**
@@ -285,6 +340,11 @@ function App() {
         isDarkMode={isDarkMode}
         onSaveCycle={onSaveCycle}
         onOpenLoadMenu={handleOpenLoadMenu}
+        onEditCycle={handleEditCycle}
+        onSaveEdits={onSaveEdits}
+        exitEditMode={exitEditMode}
+        editingCycleId={editingCycleId}
+        editingCycleName={editingCycleName}
       />
 
       {showLoadMenu && (
@@ -311,6 +371,13 @@ function App() {
                         onClick={() => handleLoadCycle(cycle.id)}
                       >
                         <span className="loadmenu__item-name">{cycle.name}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="loadmenu__edit-btn"
+                        onclick={() => handleEditCycle(cycle)}
+                      >
+                        Edit
                       </button>
                       <button
                         type="button"

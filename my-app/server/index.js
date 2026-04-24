@@ -220,6 +220,77 @@ app.delete("/api/cycles/:id", (req, res) => {
   res.json({ message: "Cycle deleted" })
 });
 
+/**
+ * PUT /api/cycles/:id
+ * Updates a cycle in the DB after editing it.
+ */
+app.put("/api/cycles/:id", (req, res) => {
+  const cycleId = Number(req.params.id);
+  const { nodes, edges } = req.body;
+
+  // validation
+  if (!Number.isInteger(cycleId)) {
+    return res.status(400).json({ error: "Invalid cycle ID" });
+  }
+
+  if (!Array.isArray(edges) || !Array.isArray(nodes)) {
+    return res.status(400).json({ error: "nodes[] and edges[] required" });
+  }
+
+  // check cycle exists
+  const exists = db.prepare(`SELECT id FROM cycles WHERE id = ?`).get(cycleId);
+  if (!exists) {
+    return res.status(404).json({ error: "Cycle not found" });
+  }
+
+  const deleteNodes = db.prepare(`DELETE FROM nodes WHERE cycleId = ?`);
+  const deleteEdges = db.prepare(`DELETE FROM edges WHERE cycleId = ?`);
+
+  const insertNodes = db.prepare(`
+    INSERT INTO nodes (cycleId, flowId, nodeType, positionX, positionY, jsonData)
+    VALUES (@cycleId, @flowId, @nodeType, @positionX, @positionY, @jsonData)
+    `);
+
+  const insertEdges = db.prepare(`
+    INSERT INTO edges (cycleId, flowId, source, target)
+    VALUES (@cycleId, @flowId, @source, @target)
+    `);
+
+  const overwrite = db.transaction((nodesIn, edgesIn) => {
+    deleteNodes.run(cycleId);
+    deleteEdges.run(cycleId);
+
+    for (const node of nodesIn) {
+      insertNodes.run({
+        cycleId,
+        flowId: node.id,
+        nodeType: node.type ?? null,
+        positionX: node.position?.x ?? 0,
+        positionY: node.position?.y ?? 0,
+        jsonData: JSON.stringify(node.data ?? {}),
+      });
+    }
+
+    for (const edge of edgesIn) {
+      insertEdges.run({
+        cycleId,
+        flowId: edge.id,
+        source: edge.source,
+        target: edge.target,
+      });
+    }
+
+  });
+
+  try {
+    overwrite(nodes, edges);
+    res.json({ id: cycleId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update cycle" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
