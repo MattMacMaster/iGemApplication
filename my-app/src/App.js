@@ -4,11 +4,14 @@ import Sidemenu from './Components/Sidemenu';
 import { useState, useCallback, useRef, useMemo } from 'react';
 import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, Background, Controls } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import LoadCycleDialog from './Components/LoadCycleDialog';
 import ThermometerNode from './Components/HardwareNodes/ThermometerNode';
 import SyringePumpNode from './Components/HardwareNodes/SyringePumpNode';
 import ElectroporatorNode from './Components/HardwareNodes/ElectroporatorNode';
 import PeristalticPumpNode from './Components/HardwareNodes/PeristalticPumpNode';
 import SpectrometerNode from './Components/HardwareNodes/SpectrometerNode';
+import { deleteCycle as apiDeleteCycle, getCycle, listCycles } from './api/cyclesApi';
+import { useCycleSave } from './hooks/useCycleSave';
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
@@ -44,32 +47,12 @@ function App() {
     );
   }, []);
 
-  const saveAsNewCycle = useCallback(async (name) => {
-    const trimmed = (name ?? '').trim();
-    if (!trimmed) return;
-
-    try {
-      const res = await fetch('http://localhost:5001/api/cycles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmed, nodes, edges }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        console.error('Save failed:', err);
-        alert('Failed to save cycle.');
-        return;
-      }
-
-      const data = await res.json();
-      console.log('Saved cycle with id:', data.id);
-      alert('Cycle saved');
-    } catch (e) {
-      console.error('Save error:', e);
-      alert('Error saving cycle.');
-    }
-  }, [nodes, edges]);
+  const { onSaveCycle } = useCycleSave({
+    nodes,
+    edges,
+    activeCycleId,
+    activeCycleName,
+  });
 
   /**
    * Fetches all saved cycles and opens the Load menu.
@@ -77,15 +60,13 @@ function App() {
   const handleOpenLoadMenu = useCallback(async () => {
     setShowLoadMenu(true);
     try {
-      const res = await fetch('http://localhost:5001/api/cycles');
+      const res = await listCycles();
       if (!res.ok) {
         // Keep UI stable even if backend responds with an error.
         setSavedCycles([]);
         return;
       }
-
-      const data = await res.json();
-      setSavedCycles(Array.isArray(data) ? data : []);
+      setSavedCycles(res.data);
     } catch (e) {
       console.error('Load error:', e);
       alert('Failed to load cycles.');
@@ -99,14 +80,13 @@ function App() {
    */
   const handleLoadCycle = useCallback(async (cycle) => {
     try {
-      const res = await fetch(`http://localhost:5001/api/cycles/${cycle.id}`);
+      const res = await getCycle(cycle.id);
       if (!res.ok) {
         alert('Failed to load cycle.');
         return;
       }
-      const data = await res.json();
       setNodes(
-        data.nodes.map((node) => ({
+        res.data.nodes.map((node) => ({
           ...node,
           data: {
             ...node.data,
@@ -115,7 +95,7 @@ function App() {
         }))
       );
       // Replace current canvas graph with the loaded one.
-      setEdges(data.edges);
+      setEdges(res.data.edges);
       setShowLoadMenu(false);
 
       // Track which saved cycle is currently loaded
@@ -134,18 +114,12 @@ function App() {
     if (!window.confirm("Are you sure you want to delete this cycle?")) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/cycles/${cycleId}`, {
-        method: 'DELETE',
-      });
-
+      const res = await apiDeleteCycle(cycleId);
       if (!res.ok) return;
 
       // Refresh list from DB so menu always reflects server truth.
-      const listRes = await fetch('http://localhost:5001/api/cycles');
-      if (listRes.ok) {
-        const data = await listRes.json();
-        setSavedCycles(Array.isArray(data) ? data : []);
-      }
+      const listRes = await listCycles();
+      if (listRes.ok) setSavedCycles(listRes.data);
     } catch (e) {
       console.error('Delete error:', e);
       alert('Failed to delete cycle.');
@@ -167,53 +141,6 @@ function App() {
   const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), [setNodes]);
   const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [setEdges]);
   const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
-
-  /**
-   * Saves the current canvas graph as a new cycle.
-   */
-  const onSaveCycle = useCallback(async () => {
-    // Currently set up for Ok = Overwrite, Cancel = Save as new but a custom popup would be much clearer
-    if (activeCycleId != null) {
-      const label = activeCycleName ? `“${activeCycleName}”` : `#${activeCycleId}`;
-      const overwrite = window.confirm(
-        `Overwrite ${label}?\n\nOK = Overwrite\nCancel = Save as new`
-      );
-
-      if (overwrite) {
-        try {
-          const res = await fetch(`http://localhost:5001/api/cycles/${activeCycleId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nodes, edges }),
-          });
-
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            console.error('Overwrite failed:', err);
-            alert('Failed to overwrite cycle.');
-            return;
-          }
-
-          alert('Cycle overwritten');
-          return;
-        } catch (e) {
-          console.error('Overwrite error:', e);
-          alert('Error overwriting cycle.');
-          return;
-        }
-      }
-
-      const newName = window.prompt('Name the NEW cycle (save as new):');
-      if (!newName) return;
-      await saveAsNewCycle(newName);
-      return;
-    }
-
-    // default to “save as new”
-    const name = window.prompt('Name this cycle:');
-    if (!name) return;
-    await saveAsNewCycle(name);
-  }, [activeCycleId, activeCycleName, nodes, edges, saveAsNewCycle]);
 
   /**
    * Resets the canvas.
@@ -242,7 +169,7 @@ function App() {
 
   /**
    * Handles drag over events.
-   * Drom the HTML Drag and Drop API.
+   * From the HTML Drag and Drop API.
    */
   const onDragOver = useCallback((event) => {
     event.preventDefault();
@@ -332,47 +259,13 @@ function App() {
         onOpenLoadMenu={handleOpenLoadMenu}
       />
 
-      {showLoadMenu && (
-        <div className="loadmenu-overlay" role="dialog" aria-modal="true" aria-labelledby="loadmenu-title">
-          <div className="loadmenu">
-            <div className="loadmenu__header">
-              <div id="loadmenu-title" className="loadmenu__title">
-                Load cycle
-              </div>
-              <button type="button" className="btn-secondary" onClick={() => setShowLoadMenu(false)}>
-                Close
-              </button>
-            </div>
-            <div className="loadmenu__body">
-              {savedCycles.length === 0 ? (
-                <p className="loadmenu__empty">No saved cycles found.</p>
-              ) : (
-                <ul className="loadmenu__list">
-                  {savedCycles.map((cycle) => (
-                    <li key={cycle.id} className="loadmenu__row">
-                      <button
-                        type="button"
-                        className="loadmenu__item-btn"
-                        onClick={() => handleLoadCycle(cycle)}
-                      >
-                        <span className="loadmenu__item-name">{cycle.name}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="loadmenu__delete-btn"
-                        title="Delete this cycle"
-                        onClick={() => deleteCycle(cycle.id)}
-                      >
-                        Delete
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <LoadCycleDialog
+        open={showLoadMenu}
+        cycles={savedCycles}
+        onClose={() => setShowLoadMenu(false)}
+        onLoad={handleLoadCycle}
+        onDelete={deleteCycle}
+      />
 
       {showSystemPanel && (
         <div className="system-panel">
