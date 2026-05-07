@@ -106,34 +106,46 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
           </div>
           <div className="setting-item">
             <span className="setting-key">Board (1-4):</span>
-            <input
-              type="number"
+            <select
               className="setting-input"
               value={boardVal}
               onChange={handleBoardChange}
-              placeholder="xx"
-            />
+            >
+              <option value="">Select</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
           </div>
           <div className="setting-item">
             <span className="setting-key">Axis (X, Y, Z, A):</span>
-            <input
-              type="text"
+            <select
               className="setting-input"
               value={axisVal}
               onChange={handleAxisChange}
-              placeholder="-"
-            />
+            >
+              <option value="">Select</option>
+              <option value="X">X</option>
+              <option value="Y">Y</option>
+              <option value="Z">Z</option>
+              <option value="A">A</option>
+            </select>
           </div>
           <div className="setting-item">
             <span className="setting-key">Direction (up, down):</span>
-            <input
+            <select
               type="text"
               style={{ textTransform: 'lowercase' }}
               className="setting-input"
               value={directionVal}
               onChange={handleDirectionChange}
               placeholder="-"
-            />
+            >
+              <option value="">Select</option>
+              <option value="up">up</option>
+              <option value="down">down</option>
+            </select>
           </div>
         </div>
       </div>
