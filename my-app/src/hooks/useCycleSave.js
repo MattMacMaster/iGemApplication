@@ -4,6 +4,9 @@ import { createCycle, updateCycle } from '../api/cyclesApi';
 /**
  * Saves a cycle to the database
  *
+ * - onSaveCycle: overwrites the active cycle if one is loaded, otherwise saves as new.
+ * - onSaveAsNew: always prompts for a name and saves a brand new cycle.
+ * 
  */
 export function useCycleSave({
   nodes,
@@ -35,43 +38,35 @@ export function useCycleSave({
   );
 
   const onSaveCycle = useCallback(async () => {
-    // Currently set up for Ok = Overwrite, Cancel = Save as new but a custom popup would be much clearer
     if (activeCycleId != null) {
-      const label = activeCycleName ? `“${activeCycleName}”` : `#${activeCycleId}`;
-      const overwrite = window.confirm(
-        `Overwrite ${label}?\n\nOK = Overwrite\nCancel = Save as new`
-      );
-
-      if (overwrite) {
-        try {
-          const res = await updateCycle(activeCycleId, { nodes, edges });
-          if (!res.ok) {
-            console.error('Overwrite failed:', res.data);
-            alert('Failed to overwrite cycle.');
-            return;
-          }
-
-          alert('Cycle overwritten');
-          return;
-        } catch (e) {
-          console.error('Overwrite error:', e);
-          alert('Error overwriting cycle.');
+      try {
+        const res = await updateCycle(activeCycleId, { nodes, edges });
+        if (!res.ok) {
+          console.error('Overwrite failed:', res.data);
+          alert('Failed to overwrite cycle.');
           return;
         }
-      }
 
-      const newName = window.prompt('Name the NEW cycle (save as new):');
-      if (!newName) return;
-      await saveAsNewCycle(newName);
-      return;
+        const label = activeCycleName ? `“${activeCycleName}”` : `#${activeCycleId}`;
+        alert(`Cycle ${label} updated`);
+        return;
+      } catch (e) {
+        console.error('Overwrite error:', e);
+        alert('Error overwriting cycle.');
+        return;
+      }
     }
 
-    // default to “save as new”
     const name = window.prompt('Name this cycle:');
     if (!name) return;
     await saveAsNewCycle(name);
   }, [activeCycleId, activeCycleName, nodes, edges, saveAsNewCycle]);
 
-  return { onSaveCycle, saveAsNewCycle };
-}
+  const onSaveAsNew = useCallback(async () => {
+    const name = window.prompt('Name the new cycle:');
+    if (!name) return;
+    await saveAsNewCycle(name);
+  }, [saveAsNewCycle]);
 
+  return { onSaveCycle, onSaveAsNew, saveAsNewCycle };
+}

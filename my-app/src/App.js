@@ -47,7 +47,7 @@ function App() {
     );
   }, []);
 
-  const { onSaveCycle } = useCycleSave({
+  const { onSaveCycle, onSaveAsNew } = useCycleSave({
     nodes,
     edges,
     activeCycleId,
@@ -256,6 +256,8 @@ function App() {
         onToggleDarkMode={onToggleDarkMode}
         isDarkMode={isDarkMode}
         onSaveCycle={onSaveCycle}
+        onSaveAsNew={onSaveAsNew}
+        activeCycleName={activeCycleName}
         onOpenLoadMenu={handleOpenLoadMenu}
       />
 

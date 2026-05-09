@@ -7,6 +7,8 @@ const Sidemenu = ({
     onToggleDarkMode,
     isDarkMode,
     onSaveCycle,
+    onSaveAsNew,
+    activeCycleName,
     onOpenLoadMenu,
 }) => {
     const [isPartsOpen, setIsPartsOpen] = useState(true);
@@ -70,7 +72,10 @@ const Sidemenu = ({
                 {isOptionsOpen && (
                     <div className="Sidemenu__panel-content">
                         <button type="button" className="Sidemenu_save-btn" onClick={onSaveCycle}>
-                            Save Cycle
+                            {activeCycleName ? `Save Cycle (${activeCycleName})` : 'Save Cycle'}
+                        </button>
+                        <button type="button" className="Sidemenu_save-btn" onClick={onSaveAsNew}>
+                            Save As New
                         </button>
                         <button type="button" className="Sidemenu_load-btn" onClick={onOpenLoadMenu}>
                             Load Cycle
