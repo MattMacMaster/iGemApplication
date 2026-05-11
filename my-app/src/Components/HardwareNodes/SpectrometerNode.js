@@ -1,3 +1,38 @@
 import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import './HardwareNode.css';
+
+const SpectrometerNode = ({ data, isConnectable, selected }) => {
+    // add any useStates here
+
+    const [message, setMessage] = useState("");
+
+    return (
+        <div className={`hardware-node spectrometer-node ${selected ? 'selected' : ''}`}>
+            <Handle
+                id="target"
+                type="target"
+                position={Position.Top}
+                isConnectable={isConnectable}
+                style={{ left: '25%' }}
+            />
+
+            <Handle
+                id="source"
+                type="source"
+                position={Position.Top}
+                isConnectable={isConnectable}
+                style={{ left: '75%' }}
+            />
+
+            <div className="hardware-node-content">
+                <div className="hardware-node-header">
+                    {data.label || 'Spectrometer'}
+                </div>
+
+            </div>
+        </div>
+    );
+}
+
+export default memo(SpectrometerNode);

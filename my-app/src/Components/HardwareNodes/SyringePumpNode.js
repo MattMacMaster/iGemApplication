@@ -14,11 +14,11 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
   const [message, setMessage] = useState("");
 
   const [axisVal, setAxis] = useState(
-    data.settings?.axisVal || ''
+    data.settings?.axis || ''
   );
 
   const [directionVal, setDirection] = useState(
-    data.settings?.directionVal || ''
+    data.settings?.direction || ''
   );
 
   const CallBackend = async (payload) => {
@@ -46,7 +46,7 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
     }
   };
 
-    const handleBoardChange = (e) => {
+  const handleBoardChange = (e) => {
     setBoard(e.target.value);
 
     if (data.onSettingsChange) {
@@ -106,39 +106,49 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
           </div>
           <div className="setting-item">
             <span className="setting-key">Board (1-4):</span>
-            <input
-              type="number"
-              className="setting-input"
+            <select
+              className="setting-select"
               value={boardVal}
               onChange={handleBoardChange}
-              placeholder="xx"
-            />
+            >
+              <option value="">Select</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
           </div>
           <div className="setting-item">
             <span className="setting-key">Axis (X, Y, Z, A):</span>
-            <input
-              type="text"
-              className="setting-input"
+            <select
+              className="setting-select"
               value={axisVal}
               onChange={handleAxisChange}
-              placeholder="-"
-            />
+            >
+              <option value="">Select</option>
+              <option value="X">X</option>
+              <option value="Y">Y</option>
+              <option value="Z">Z</option>
+              <option value="A">A</option>
+            </select>
           </div>
           <div className="setting-item">
             <span className="setting-key">Direction (up, down):</span>
-            <input
-              type="text"
-              style={{ textTransform: 'lowercase' }}
-              className="setting-input"
+            <select
+              className="setting-select"
               value={directionVal}
               onChange={handleDirectionChange}
-              placeholder="-"
-            />
+            >
+              <option value="">Select</option>
+              <option value="up">up</option>
+              <option value="down">down</option>
+            </select>
           </div>
         </div>
       </div>
 
       <button
+        className="node-action-btn"
         onClick={() =>
           CallBackend({
             type: "Motor",
@@ -148,8 +158,10 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
           })
         }
       >
-        Send
+        Send instruction
       </button>
+
+      {message && <p className="node-message">{message}</p>}
     </div>
   );
 };

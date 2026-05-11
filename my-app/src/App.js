@@ -1,11 +1,17 @@
+
 import './App.css';
 import Sidemenu from './Components/Sidemenu';
 import { useState, useCallback, useRef, useMemo } from 'react';
 import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, Background, Controls } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import LoadCycleDialog from './Components/LoadCycleDialog';
 import ThermometerNode from './Components/HardwareNodes/ThermometerNode';
 import SyringePumpNode from './Components/HardwareNodes/SyringePumpNode';
-
+import ElectroporatorNode from './Components/HardwareNodes/ElectroporatorNode';
+import PeristalticPumpNode from './Components/HardwareNodes/PeristalticPumpNode';
+import SpectrometerNode from './Components/HardwareNodes/SpectrometerNode';
+import { deleteCycle as apiDeleteCycle, getCycle, listCycles } from './api/cyclesApi';
+import { useCycleSave } from './hooks/useCycleSave';
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
@@ -14,33 +20,166 @@ function App() {
   const nodeId = useRef(0);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [showSystemPanel, setShowSystemPanel] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() =>
+    document.documentElement.getAttribute('data-theme') === 'dark'
+  );
+  const [showLoadMenu, setShowLoadMenu] = useState(false);
+  const [savedCycles, setSavedCycles] = useState([]);
+  const [activeCycleId, setActiveCycleId] = useState(null);
+  const [activeCycleName, setActiveCycleName] = useState('');
+
+  /**
+   * Updates a node's settings when its inputs are changed (like steps, axis, direction)
+   */
+  const updateNodeSettings = useCallback((id, update) => {
+    setNodes((prev) =>
+      prev.map((n) => {
+        if (n.id !== id) return n;
+        const prevSettings = n.data?.settings ?? {};
+        return {
+          ...n,
+          data: {
+            ...(n.data ?? {}),
+            settings: { ...prevSettings, ...(update ?? {}) },
+          },
+        };
+      })
+    );
+  }, []);
+
+  const { onSaveCycle, onSaveAsNew } = useCycleSave({
+    nodes,
+    edges,
+    activeCycleId,
+    activeCycleName,
+  });
+
+  /**
+   * Fetches all saved cycles and opens the Load menu.
+   */
+  const handleOpenLoadMenu = useCallback(async () => {
+    setShowLoadMenu(true);
+    try {
+      const res = await listCycles();
+      if (!res.ok) {
+        // Keep UI stable even if backend responds with an error.
+        setSavedCycles([]);
+        return;
+      }
+      setSavedCycles(res.data);
+    } catch (e) {
+      console.error('Load error:', e);
+      alert('Failed to load cycles.');
+      setSavedCycles([]);
+    }
+  }, []);
+
+  /**
+   * Loads one saved cycle by id and places it back on the canvas.
+   * onSettingsChange is reattached because functions aren't stored in DB JSON.
+   */
+  const handleLoadCycle = useCallback(async (cycle) => {
+    try {
+      const res = await getCycle(cycle.id);
+      if (!res.ok) {
+        alert('Failed to load cycle.');
+        return;
+      }
+      setNodes(
+        res.data.nodes.map((node) => ({
+          ...node,
+          data: {
+            ...node.data,
+            onSettingsChange: (update) => updateNodeSettings(node.id, update),
+          },
+        }))
+      );
+      // Replace current canvas graph with the loaded one.
+      setEdges(res.data.edges);
+      setShowLoadMenu(false);
+
+      // Track which saved cycle is currently loaded
+      setActiveCycleId(cycle.id);
+      setActiveCycleName(cycle.name ?? '');
+    } catch (e) {
+      console.error('Failed to load cycle:', e);
+      alert('Failed to load cycle.');
+    }
+  }, [updateNodeSettings]);
+
+  /**
+   * Deletes a saved cycle by id.
+   */
+  const deleteCycle = useCallback(async (cycleId) => {
+    if (!window.confirm("Are you sure you want to delete this cycle?")) return;
+
+    try {
+      const res = await apiDeleteCycle(cycleId);
+      if (!res.ok) return;
+
+      // Refresh list from DB so menu always reflects server truth.
+      const listRes = await listCycles();
+      if (listRes.ok) setSavedCycles(listRes.data);
+    } catch (e) {
+      console.error('Delete error:', e);
+      alert('Failed to delete cycle.');
+    }
+  }, []);
 
   const nodeTypes = useMemo(
     () => ({
       thermometer: ThermometerNode,
       syringePump: SyringePumpNode,
+      spectrometer: SpectrometerNode,
+      electroporator: ElectroporatorNode,
+      peristalticPump: PeristalticPumpNode,
     }),
     []
   );
 
   // need these 3 basic ones for sure, look for more later if need more functionality 
-  const onNodesChange = useCallback((changes) => setNodes ((nds) => applyNodeChanges(changes, nds)), [setNodes]);
+  const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), [setNodes]);
   const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [setEdges]);
   const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
 
+  /**
+   * Resets the canvas.
+   */
   const onResetCanvas = useCallback(() => {
     setNodes([]);
     setEdges([]);
     nodeId.current = 0;
+    setActiveCycleId(null);
+    setActiveCycleName('');
   }, []);
 
-  // from HTML Drag and Drop API
+  /**
+   * Toggles the dark mode.
+   */
+  const onToggleDarkMode = useCallback(() => {
+    const el = document.documentElement;
+    if (el.getAttribute('data-theme') === 'dark') {
+      el.removeAttribute('data-theme');
+      setIsDarkMode(false);
+    } else {
+      el.setAttribute('data-theme', 'dark');
+      setIsDarkMode(true);
+    }
+  }, []);
+
+  /**
+   * Handles drag over events.
+   * From the HTML Drag and Drop API.
+   */
   const onDragOver = useCallback((event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  // from HTML Drag and Drop API too
+  /**
+   * Handles drop events.
+   * From the HTML Drag and Drop API.
+   */
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
@@ -69,16 +208,20 @@ function App() {
           id: newId,
           type: parsed.type ?? 'default',
           position,
-          data: { 
+          data: {
             label: parsed.label ?? 'Node',
-            settings: parsed.settings ?? {}
+            settings: parsed.settings ?? {},
+            onSettingsChange: (update) => updateNodeSettings(newId, update),
           },
         })
       );
     },
-    [reactFlowInstance]
+    [reactFlowInstance, updateNodeSettings]
   );
 
+  /**
+   * Checks if a connection is valid (no duplicate connections).
+   */
   const isValidConnection = useCallback((connection) => {
     const sourceKey = (v) => v ?? null;
     const hasConnection = edges.some(
@@ -91,76 +234,84 @@ function App() {
 
   return (
     <div className="App">
-      <header>
-        <button className="menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>☰</button>
-        OSAGE Control Interface
-        <button 
-          onClick={() => setShowSystemPanel(!showSystemPanel)}
-          style={{ marginLeft: '20px', padding: '5px 10px' }}
-        >
-          {showSystemPanel ? 'Hide System Panel' : 'Show System Panel'}
-        </button>
+      <header className="app-header">
+        <div className="app-header__left">
+          <button className="menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle menu">☰</button>
+          <h1 className="app-header__title">MOSMAGE Control Interface</h1>
+        </div>
+        <div className="app-header__actions">
+          <button
+            className="btn-secondary"
+            onClick={() => setShowSystemPanel(!showSystemPanel)}
+          >
+            {showSystemPanel ? 'Hide System Panel' : 'System Panel'}
+          </button>
+        </div>
       </header>
 
       <Sidemenu
         isOpen={isMenuOpen}
         toggleMenu={() => setIsMenuOpen(!isMenuOpen)}
         onResetCanvas={onResetCanvas}
+        onToggleDarkMode={onToggleDarkMode}
+        isDarkMode={isDarkMode}
+        onSaveCycle={onSaveCycle}
+        onSaveAsNew={onSaveAsNew}
+        activeCycleName={activeCycleName}
+        onOpenLoadMenu={handleOpenLoadMenu}
+      />
+
+      <LoadCycleDialog
+        open={showLoadMenu}
+        cycles={savedCycles}
+        onClose={() => setShowLoadMenu(false)}
+        onLoad={handleLoadCycle}
+        onDelete={deleteCycle}
       />
 
       {showSystemPanel && (
-        <div style={{
-          position: 'absolute',
-          bottom: '10px',
-          right: '10px',
-          background: 'rgba(0, 0, 0, 0.9)',
-          color: '#0f0',
-          padding: '15px',
-          borderRadius: '8px',
-          zIndex: 1000,
-          maxWidth: '400px',
-          fontFamily: 'monospace',
-          fontSize: '12px',
-          maxHeight: '60vh',
-          overflow: 'auto'
-        }}>
-          <h3 style={{ margin: '0 0 10px 0', color: 'rgb(255, 255, 255)' }}>System Panel</h3>
-          <div style={{ marginBottom: '10px' }}>
-            <strong>Components ({nodes.length}):</strong>
-            {nodes.map(item => (
-              <li key={item.id}> {
-                item.data.label}
-              </li>))}
+        <div className="system-panel">
+          <h3 className="system-panel__title">System Panel</h3>
+          <div className="system-panel__section">
+            <div className="system-panel__section-title">Components ({nodes.length})</div>
+            <ul>
+              {nodes.map(item => (
+                <li key={item.id}>{item.data.label}</li>
+              ))}
+            </ul>
           </div>
-          <div>
-            <strong>Connections ({edges.length}):</strong>
-            {edges.map(item => (
-              <li key={item.id}>
-                {item.source} to {item.target}
-              </li>
-            ))}
+          <div className="system-panel__section">
+            <div className="system-panel__section-title">Connections ({edges.length})</div>
+            <ul>
+              {edges.map(item => (
+                <li key={item.id}>{item.source} → {item.target}</li>
+              ))}
+            </ul>
           </div>
         </div>
       )}
 
-    <div style={{ height: '100%', width: '100%' }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onInit={setReactFlowInstance}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-        isValidConnection={isValidConnection}
-        fitView
-      >
-        <Background />
-        <Controls position= 'top-right'/>
-      </ReactFlow>
-    </div>
+      <div className="app-canvas-wrapper">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          defaultEdgeOptions={{
+            animated: true
+          }}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onInit={setReactFlowInstance}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          isValidConnection={isValidConnection}
+          fitView
+        >
+          <Background />
+          <Controls position='top-right' />
+        </ReactFlow>
+      </div>
     </div>
   );
 }

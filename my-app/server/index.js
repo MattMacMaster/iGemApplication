@@ -1,8 +1,8 @@
-
 const express = require("express");
 const cors = require("cors");
-const i2c = require("i2c-bus");
-const { Gpio } = require("onoff");
+// const i2c = require("i2c-bus");
+// const { Gpio } = require("onoff");
+const db = require("./database");
 
 const app = express();
 const PORT = 5001;
@@ -10,6 +10,7 @@ const PORT = 5001;
 app.use(cors());
 app.use(express.json());
 
+/*
 // Open I2C bus (bus 1 on Raspberry Pi)
 const bus = i2c.openSync(1);
 const SLAVE_ADDRESS = 0x04;
@@ -88,6 +89,205 @@ app.post("/api/instr", (req, res) => {
   } catch (err) {
     console.error("I2C Error:", err);
     res.status(500).json({ error: "I2C failed" });
+  }
+});
+*/
+
+/**
+ * POST /api/cycles
+ * Saves current canvas as a named cycle.
+ */
+app.post("/api/cycles", (req, res) => {
+  const { name, nodes, edges } = req.body;
+
+  if (!name || !Array.isArray(nodes)) {
+    return res.status(400).json({ error: "Name and nodes[] required" });
+  }
+
+  const cycleStmt = db.prepare(`
+    INSERT INTO cycles (name)
+    VALUES (?)
+  `);
+
+  const result = cycleStmt.run(name);
+  const cycleId = result.lastInsertRowid;
+
+  const nodeStmt = db.prepare(`
+    INSERT INTO nodes (cycleId, flowId, nodeType, positionX, positionY, jsonData)
+    VALUES (@cycleId, @flowId, @nodeType, @positionX, @positionY, @jsonData)
+  `);
+
+  const edgeStmt = db.prepare(`
+    INSERT INTO edges (cycleId, flowId, source, target)
+    VALUES (@cycleId, @flowId, @source, @target)
+  `);
+
+  /**
+   * Inserts many nodes and edges into the DB.
+   * Either all nodes/edges succeed or none are inserted.
+   */
+  const insertMany = db.transaction((nodesIn, edgesIn) => {
+    const safeNodes = Array.isArray(nodesIn) ? nodesIn : [];
+    const safeEdges = Array.isArray(edgesIn) ? edgesIn : [];
+
+    // insert nodes
+    for (const node of safeNodes) {
+      nodeStmt.run({
+        cycleId,
+        flowId: node.id,
+        nodeType: node.type ?? null,
+        positionX: node.position?.x ?? 0,
+        positionY: node.position?.y ?? 0,
+        jsonData: JSON.stringify(node.data ?? {}),
+      });
+    }
+
+    // insert edges
+    for (const edge of safeEdges) {
+      edgeStmt.run({
+        cycleId,
+        flowId: edge.id,
+        source: edge.source,
+        target: edge.target,
+      });
+    }
+  });
+
+  insertMany(nodes, edges);
+
+  res.status(201).json({ id: cycleId });
+});
+
+/**
+ * GET /api/cycles
+ * Retrieves all cycles from the DB.
+ */
+app.get("/api/cycles", (req, res) => {
+  const stmt = db.prepare(`
+    SELECT id, name FROM cycles
+    ORDER BY name
+  `);
+
+  const rows = stmt.all();
+  res.json(rows);
+});
+
+/**
+ * GET /api/cycles/:id
+ * Retrieves a single cycle from the DB.
+ */
+app.get("/api/cycles/:id", (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const nodesStmt = db.prepare(`SELECT * FROM nodes WHERE cycleId = ?`);
+    const edgesStmt = db.prepare(`SELECT * FROM edges WHERE cycleId = ?`);
+
+    const nodes = nodesStmt.all(id);
+    const edges = edgesStmt.all(id);
+
+    // Format nodes
+    const formattedNodes = nodes.map(n => ({
+      id: n.flowId,
+      type: n.nodeType,
+      position: { x: n.positionX, y: n.positionY },
+      data: JSON.parse(n.jsonData)
+    }));
+
+    // Format edges
+    const formattedEdges = edges.map(e => ({
+      id: e.flowId,
+      source: e.source,
+      target: e.target
+    }));
+
+    res.json({ nodes: formattedNodes, edges: formattedEdges });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load cycle" });
+  }
+});
+
+/**
+ * DELETE /api/cycles/:id
+ * Deletes a cycle from the DB.
+ */
+app.delete("/api/cycles/:id", (req, res) => {
+  const result = db.prepare(` DELETE FROM cycles WHERE id = ? `).run(req.params.id);
+  if (result.changes === 0) {
+    return res.status(404).json({ error: "Cycle not found" });
+  }
+  res.json({ message: "Cycle deleted" })
+});
+
+/**
+ * PUT /api/cycles/:id
+ * Updates a cycle in the DB after editing it.
+ */
+app.put("/api/cycles/:id", (req, res) => {
+  const cycleId = Number(req.params.id);
+  const { nodes, edges } = req.body;
+
+  // validation
+  if (!Number.isInteger(cycleId)) {
+    return res.status(400).json({ error: "Invalid cycle ID" });
+  }
+
+  if (!Array.isArray(edges) || !Array.isArray(nodes)) {
+    return res.status(400).json({ error: "nodes[] and edges[] required" });
+  }
+
+  // check cycle exists
+  const exists = db.prepare(`SELECT id FROM cycles WHERE id = ?`).get(cycleId);
+  if (!exists) {
+    return res.status(404).json({ error: "Cycle not found" });
+  }
+
+  const deleteNodes = db.prepare(`DELETE FROM nodes WHERE cycleId = ?`);
+  const deleteEdges = db.prepare(`DELETE FROM edges WHERE cycleId = ?`);
+
+  const insertNodes = db.prepare(`
+    INSERT INTO nodes (cycleId, flowId, nodeType, positionX, positionY, jsonData)
+    VALUES (@cycleId, @flowId, @nodeType, @positionX, @positionY, @jsonData)
+    `);
+
+  const insertEdges = db.prepare(`
+    INSERT INTO edges (cycleId, flowId, source, target)
+    VALUES (@cycleId, @flowId, @source, @target)
+    `);
+
+  const overwrite = db.transaction((nodesIn, edgesIn) => {
+    deleteNodes.run(cycleId);
+    deleteEdges.run(cycleId);
+
+    for (const node of nodesIn) {
+      insertNodes.run({
+        cycleId,
+        flowId: node.id,
+        nodeType: node.type ?? null,
+        positionX: node.position?.x ?? 0,
+        positionY: node.position?.y ?? 0,
+        jsonData: JSON.stringify(node.data ?? {}),
+      });
+    }
+
+    for (const edge of edgesIn) {
+      insertEdges.run({
+        cycleId,
+        flowId: edge.id,
+        source: edge.source,
+        target: edge.target,
+      });
+    }
+
+  });
+
+  try {
+    overwrite(nodes, edges);
+    res.json({ id: cycleId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update cycle" });
   }
 });
 
