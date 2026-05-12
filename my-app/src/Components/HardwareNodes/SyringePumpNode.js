@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import './HardwareNode.css';
 
@@ -20,6 +20,22 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
   const [directionVal, setDirection] = useState(
     data.settings?.direction || ''
   );
+
+  useEffect(() => {
+    setSteps(data.settings?.steps ?? '');
+  }, [data.settings?.steps]);
+
+  useEffect(() => {
+    setBoard(data.settings?.boardVal ?? '');
+  }, [data.settings?.boardVal]);
+
+  useEffect(() => {
+    setAxis(data.settings?.axis ?? '');
+  }, [data.settings?.axis]);
+
+  useEffect(() => {
+    setDirection(data.settings?.direction ?? '');
+  }, [data.settings?.direction]);
 
   const CallBackend = async (payload) => {
     try {

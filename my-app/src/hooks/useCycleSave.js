@@ -13,6 +13,8 @@ export function useCycleSave({
   edges,
   activeCycleId,
   activeCycleName,
+  setActiveCycleId,
+  setActiveCycleName,
 }) {
   const saveAsNewCycle = useCallback(
     async (name) => {
@@ -27,14 +29,20 @@ export function useCycleSave({
           return;
         }
 
-        console.log('Saved cycle with id:', res.data?.id);
+        const newId = res.data?.id;
+        if (newId != null) {
+          setActiveCycleId(newId);
+          setActiveCycleName(trimmed);
+        }
+
+        console.log('Saved cycle with id:', newId);
         alert('Cycle saved');
       } catch (e) {
         console.error('Save error:', e);
         alert('Error saving cycle.');
       }
     },
-    [nodes, edges]
+    [nodes, edges, setActiveCycleId, setActiveCycleName]
   );
 
   const onSaveCycle = useCallback(async () => {

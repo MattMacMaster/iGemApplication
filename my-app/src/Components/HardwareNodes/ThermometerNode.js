@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import './HardwareNode.css';
 
@@ -8,6 +8,10 @@ const ThermometerNode = ({ data, isConnectable, selected }) => {
   );
 
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    setTemperature(data.settings?.temperature ?? '');
+  }, [data.settings?.temperature]);
 
   const CallBackend = async (payload) => {
     try {
