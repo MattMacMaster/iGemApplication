@@ -1,133 +1,110 @@
-
-import './App.css';
-import Sidemenu from './Components/Sidemenu';
+import './styles/App.css';
 import { useState, useCallback, useRef, useMemo } from 'react';
-import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, Background, Controls } from '@xyflow/react';
+import {
+  ReactFlow,
+  applyNodeChanges,
+  applyEdgeChanges,
+  addEdge,
+  Background,
+  Controls,
+} from '@xyflow/react';
+
 import '@xyflow/react/dist/style.css';
+
 import LoadCycleDialog from './Components/LoadCycleDialog';
 import ThermometerNode from './Components/HardwareNodes/ThermometerNode';
 import SyringePumpNode from './Components/HardwareNodes/SyringePumpNode';
 import ElectroporatorNode from './Components/HardwareNodes/ElectroporatorNode';
 import PeristalticPumpNode from './Components/HardwareNodes/PeristalticPumpNode';
 import SpectrometerNode from './Components/HardwareNodes/SpectrometerNode';
-import { deleteCycle as apiDeleteCycle, getCycle, listCycles } from './api/cyclesApi';
+import Sidemenu from './Components/SideMenu/Sidemenu';
+
 import { useCycleSave } from './hooks/useCycleSave';
+import { useCycleLoader } from './hooks/useCycleLoader';
+import { useCycleDelete } from './hooks/useCycleDelete';
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
+
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
+
   const nodeId = useRef(0);
+
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
+
   const [showSystemPanel, setShowSystemPanel] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(() =>
-    document.documentElement.getAttribute('data-theme') === 'dark'
+
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => document.documentElement.getAttribute('data-theme') === 'dark'
   );
-  const [showLoadMenu, setShowLoadMenu] = useState(false);
-  const [savedCycles, setSavedCycles] = useState([]);
-  const [activeCycleId, setActiveCycleId] = useState(null);
-  const [activeCycleName, setActiveCycleName] = useState('');
 
   /**
-   * Updates a node's settings when its inputs are changed (like steps, axis, direction)
+   * Updates node settings.
    */
   const updateNodeSettings = useCallback((id, update) => {
     setNodes((prev) =>
       prev.map((n) => {
         if (n.id !== id) return n;
+
         const prevSettings = n.data?.settings ?? {};
+
         return {
           ...n,
           data: {
             ...(n.data ?? {}),
-            settings: { ...prevSettings, ...(update ?? {}) },
+            settings: {
+              ...prevSettings,
+              ...(update ?? {}),
+            },
           },
         };
       })
     );
   }, []);
 
-  const { onSaveCycle, onSaveAsNew } = useCycleSave({
-    nodes,
-    edges,
+  /**
+   * Cycle loading hook.
+   */
+  const {
+    showLoadMenu,
+    setShowLoadMenu,
+    savedCycles,
+    setSavedCycles,
     activeCycleId,
-    activeCycleName,
     setActiveCycleId,
+    activeCycleName,
     setActiveCycleName,
+    handleOpenLoadMenu,
+    handleLoadCycle,
+  } = useCycleLoader({
+    setNodes,
+    setEdges,
+    updateNodeSettings,
   });
 
   /**
-   * Fetches all saved cycles and opens the Load menu.
+   * Cycle delete hook.
    */
-  const handleOpenLoadMenu = useCallback(async () => {
-    setShowLoadMenu(true);
-    try {
-      const res = await listCycles();
-      if (!res.ok) {
-        // Keep UI stable even if backend responds with an error.
-        setSavedCycles([]);
-        return;
-      }
-      setSavedCycles(res.data);
-    } catch (e) {
-      console.error('Load error:', e);
-      alert('Failed to load cycles.');
-      setSavedCycles([]);
-    }
-  }, []);
+  const { deleteCycle } = useCycleDelete({
+    setSavedCycles,
+  });
 
   /**
-   * Loads one saved cycle by id and places it back on the canvas.
-   * onSettingsChange is reattached because functions aren't stored in DB JSON.
+   * Cycle save hook.
    */
-  const handleLoadCycle = useCallback(async (cycle) => {
-    try {
-      const res = await getCycle(cycle.id);
-      if (!res.ok) {
-        alert('Failed to load cycle.');
-        return;
-      }
-      setNodes(
-        res.data.nodes.map((node) => ({
-          ...node,
-          data: {
-            ...node.data,
-            onSettingsChange: (update) => updateNodeSettings(node.id, update),
-          },
-        }))
-      );
-      // Replace current canvas graph with the loaded one.
-      setEdges(res.data.edges);
-      setShowLoadMenu(false);
-
-      // Track which saved cycle is currently loaded
-      setActiveCycleId(cycle.id);
-      setActiveCycleName(cycle.name ?? '');
-    } catch (e) {
-      console.error('Failed to load cycle:', e);
-      alert('Failed to load cycle.');
-    }
-  }, [updateNodeSettings]);
+const { onSaveCycle, onSaveAsNew } = useCycleSave({
+  nodes,
+  edges,
+  activeCycleId,
+  activeCycleName,
+  setActiveCycleId,
+  setActiveCycleName,
+});
 
   /**
-   * Deletes a saved cycle by id.
+   * Node types.
    */
-  const deleteCycle = useCallback(async (cycleId) => {
-    if (!window.confirm("Are you sure you want to delete this cycle?")) return;
-
-    try {
-      const res = await apiDeleteCycle(cycleId);
-      if (!res.ok) return;
-
-      // Refresh list from DB so menu always reflects server truth.
-      const listRes = await listCycles();
-      if (listRes.ok) setSavedCycles(listRes.data);
-    } catch (e) {
-      console.error('Delete error:', e);
-      alert('Failed to delete cycle.');
-    }
-  }, []);
-
   const nodeTypes = useMemo(
     () => ({
       thermometer: ThermometerNode,
@@ -139,27 +116,46 @@ function App() {
     []
   );
 
-  // need these 3 basic ones for sure, look for more later if need more functionality 
-  const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), [setNodes]);
-  const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [setEdges]);
-  const onConnect = useCallback((connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
+  /**
+   * ReactFlow handlers.
+   */
+  const onNodesChange = useCallback(
+    (changes) =>
+      setNodes((nds) => applyNodeChanges(changes, nds)),
+    []
+  );
+
+  const onEdgesChange = useCallback(
+    (changes) =>
+      setEdges((eds) => applyEdgeChanges(changes, eds)),
+    []
+  );
+
+  const onConnect = useCallback(
+    (connection) =>
+      setEdges((eds) => addEdge(connection, eds)),
+    []
+  );
 
   /**
-   * Resets the canvas.
+   * Resets canvas.
    */
   const onResetCanvas = useCallback(() => {
     setNodes([]);
     setEdges([]);
+
     nodeId.current = 0;
+
     setActiveCycleId(null);
     setActiveCycleName('');
-  }, []);
+  }, [setActiveCycleId, setActiveCycleName]);
 
   /**
-   * Toggles the dark mode.
+   * Toggles dark mode.
    */
   const onToggleDarkMode = useCallback(() => {
     const el = document.documentElement;
+
     if (el.getAttribute('data-theme') === 'dark') {
       el.removeAttribute('data-theme');
       setIsDarkMode(false);
@@ -170,8 +166,7 @@ function App() {
   }, []);
 
   /**
-   * Handles drag over events.
-   * From the HTML Drag and Drop API.
+   * Handles drag over.
    */
   const onDragOver = useCallback((event) => {
     event.preventDefault();
@@ -179,8 +174,7 @@ function App() {
   }, []);
 
   /**
-   * Handles drop events.
-   * From the HTML Drag and Drop API.
+   * Handles node drop.
    */
   const onDrop = useCallback(
     (event) => {
@@ -188,20 +182,25 @@ function App() {
 
       if (!reactFlowInstance) return;
 
-      const raw = event.dataTransfer.getData('application/reactflow');
+      const raw = event.dataTransfer.getData(
+        'application/reactflow'
+      );
+
       if (!raw) return;
 
       let parsed;
+
       try {
         parsed = JSON.parse(raw);
       } catch {
         return;
       }
 
-      const position = reactFlowInstance.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
+      const position =
+        reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
 
       const newId = `node-${nodeId.current++}`;
 
@@ -213,7 +212,8 @@ function App() {
           data: {
             label: parsed.label ?? 'Node',
             settings: parsed.settings ?? {},
-            onSettingsChange: (update) => updateNodeSettings(newId, update),
+            onSettingsChange: (update) =>
+              updateNodeSettings(newId, update),
           },
         })
       );
@@ -222,38 +222,62 @@ function App() {
   );
 
   /**
-   * Checks if a connection is valid (no duplicate connections).
+   * Prevent duplicate source connections.
    */
-  const isValidConnection = useCallback((connection) => {
-    const sourceKey = (v) => v ?? null;
-    const hasConnection = edges.some(
-      (edge) =>
-        edge.source === connection.source &&
-        sourceKey(edge.sourceHandle) === sourceKey(connection.sourceHandle)
-    );
-    return !hasConnection;
-  }, [edges]);
+  const isValidConnection = useCallback(
+    (connection) => {
+      const sourceKey = (v) => v ?? null;
+
+      const hasConnection = edges.some(
+        (edge) =>
+          edge.source === connection.source &&
+          sourceKey(edge.sourceHandle) ===
+            sourceKey(connection.sourceHandle)
+      );
+
+      return !hasConnection;
+    },
+    [edges]
+  );
 
   return (
     <div className="App">
       <header className="app-header">
         <div className="app-header__left">
-          <button className="menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle menu">☰</button>
-          <h1 className="app-header__title">MOSMAGE Control Interface</h1>
+          <button
+            className="menu-toggle"
+            onClick={() =>
+              setIsMenuOpen(!isMenuOpen)
+            }
+            aria-label="Toggle menu"
+          >
+            ☰
+          </button>
+
+          <h1 className="app-header__title">
+            MOSMAGE Control Interface
+          </h1>
         </div>
+
         <div className="app-header__actions">
           <button
             className="btn-secondary"
-            onClick={() => setShowSystemPanel(!showSystemPanel)}
+            onClick={() =>
+              setShowSystemPanel(!showSystemPanel)
+            }
           >
-            {showSystemPanel ? 'Hide System Panel' : 'System Panel'}
+            {showSystemPanel
+              ? 'Hide System Panel'
+              : 'System Panel'}
           </button>
         </div>
       </header>
 
       <Sidemenu
         isOpen={isMenuOpen}
-        toggleMenu={() => setIsMenuOpen(!isMenuOpen)}
+        toggleMenu={() =>
+          setIsMenuOpen(!isMenuOpen)
+        }
         onResetCanvas={onResetCanvas}
         onToggleDarkMode={onToggleDarkMode}
         isDarkMode={isDarkMode}
@@ -273,20 +297,34 @@ function App() {
 
       {showSystemPanel && (
         <div className="system-panel">
-          <h3 className="system-panel__title">System Panel</h3>
+          <h3 className="system-panel__title">
+            System Panel
+          </h3>
+
           <div className="system-panel__section">
-            <div className="system-panel__section-title">Components ({nodes.length})</div>
+            <div className="system-panel__section-title">
+              Components ({nodes.length})
+            </div>
+
             <ul>
-              {nodes.map(item => (
-                <li key={item.id}>{item.data.label}</li>
+              {nodes.map((item) => (
+                <li key={item.id}>
+                  {item.data.label}
+                </li>
               ))}
             </ul>
           </div>
+
           <div className="system-panel__section">
-            <div className="system-panel__section-title">Connections ({edges.length})</div>
+            <div className="system-panel__section-title">
+              Connections ({edges.length})
+            </div>
+
             <ul>
-              {edges.map(item => (
-                <li key={item.id}>{item.source} → {item.target}</li>
+              {edges.map((item) => (
+                <li key={item.id}>
+                  {item.source} → {item.target}
+                </li>
               ))}
             </ul>
           </div>
@@ -299,7 +337,7 @@ function App() {
           edges={edges}
           nodeTypes={nodeTypes}
           defaultEdgeOptions={{
-            animated: true
+            animated: true,
           }}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
@@ -311,7 +349,7 @@ function App() {
           fitView
         >
           <Background />
-          <Controls position='top-right' />
+          <Controls position="top-right" />
         </ReactFlow>
       </div>
     </div>
