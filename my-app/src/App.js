@@ -18,6 +18,7 @@ import ElectroporatorNode from './Components/HardwareNodes/ElectroporatorNode';
 import PeristalticPumpNode from './Components/HardwareNodes/PeristalticPumpNode';
 import SpectrometerNode from './Components/HardwareNodes/SpectrometerNode';
 import Sidemenu from './Components/SideMenu/Sidemenu';
+import SystemPanel from "./Components/SystemPanel/SystemPanel";
 
 import { useCycleSave } from './hooks/useCycleSave';
 import { useCycleLoader } from './hooks/useCycleLoader';
@@ -295,41 +296,7 @@ const { onSaveCycle, onSaveAsNew } = useCycleSave({
         onDelete={deleteCycle}
       />
 
-      {showSystemPanel && (
-        <div className="system-panel">
-          <h3 className="system-panel__title">
-            System Panel
-          </h3>
-
-          <div className="system-panel__section">
-            <div className="system-panel__section-title">
-              Components ({nodes.length})
-            </div>
-
-            <ul>
-              {nodes.map((item) => (
-                <li key={item.id}>
-                  {item.data.label}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="system-panel__section">
-            <div className="system-panel__section-title">
-              Connections ({edges.length})
-            </div>
-
-            <ul>
-              {edges.map((item) => (
-                <li key={item.id}>
-                  {item.source} → {item.target}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
+      {showSystemPanel && <SystemPanel nodes={nodes} edges={edges} />}
 
       <div className="app-canvas-wrapper">
         <ReactFlow
