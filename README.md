@@ -87,7 +87,7 @@ If your backend/server exists separately:
 ```bash
 cd server
 npm install
-npm start
+node index.js
 ```
 
 ---
