@@ -13,7 +13,7 @@ ARDUINO_1_ADDRESS = 0x04 #Currently going single Addresss route
 #ARDUINO_2_ADDRESS = 0x05
 #ARDUINO_3_ADDRESS = 0x06
 TCA_ADDRESS = 0x70
-CHANNEL = 0
+CHANNEL = 1
 SlaveAddress = 0x04
 I2Cbus = smbus.SMBus(1)
 
