@@ -36,6 +36,8 @@ function App() {
 
   const [showSystemPanel, setShowSystemPanel] = useState(false);
 
+  const [isAgentOpen, setIsAgentOpen] = useState(false);
+
   const [isDarkMode, setIsDarkMode] = useState(
     () => document.documentElement.getAttribute('data-theme') === 'dark'
   );
@@ -270,6 +272,15 @@ const { onSaveCycle, onSaveAsNew } = useCycleSave({
             {showSystemPanel
               ? 'Hide System Panel'
               : 'System Panel'}
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setIsAgentOpen((open) => !open)}
+            aria-label="Open assistant"
+            aria-pressed={isAgentOpen}
+          >
+            {isAgentOpen ? 'Hide LanC' : 'LanC'}
           </button>
         </div>
       </header>

@@ -120,7 +120,6 @@ body {
   background: var(--color-secondary);
   border-color: var(--color-border-strong);
 }
-
 .app-canvas-wrapper {
   flex: 1;
   min-height: 0;
