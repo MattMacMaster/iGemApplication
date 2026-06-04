@@ -19,6 +19,7 @@ import PeristalticPumpNode from './Components/HardwareNodes/PeristalticPumpNode'
 import SpectrometerNode from './Components/HardwareNodes/SpectrometerNode';
 import Sidemenu from './Components/SideMenu/Sidemenu';
 import SystemPanel from "./Components/SystemPanel/SystemPanel";
+import AgentMenu from './Components/AgentMenu/AgentMenu';
 
 import { useCycleSave } from './hooks/useCycleSave';
 import { useCycleLoader } from './hooks/useCycleLoader';
@@ -280,7 +281,7 @@ const { onSaveCycle, onSaveAsNew } = useCycleSave({
             aria-label="Open assistant"
             aria-pressed={isAgentOpen}
           >
-            {isAgentOpen ? 'Hide LanC' : 'LanC'}
+            {isAgentOpen ? 'Hide Agent' : 'Agent'}
           </button>
         </div>
       </header>
@@ -298,6 +299,8 @@ const { onSaveCycle, onSaveAsNew } = useCycleSave({
         activeCycleName={activeCycleName}
         onOpenLoadMenu={handleOpenLoadMenu}
       />
+
+      <AgentMenu isOpen={isAgentOpen} />
 
       <LoadCycleDialog
         open={showLoadMenu}
