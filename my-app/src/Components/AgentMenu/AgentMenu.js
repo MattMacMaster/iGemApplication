@@ -16,7 +16,8 @@ const AgentMenu = ({ isOpen }) => {
     return (
         <aside className={`AgentMenu ${isOpen ? 'open' : 'closed'}`}>
             <div className="AgentMenu__panel-header">
-                <span>Agent Assistant</span>
+                <span className="AgentMenu__title">Agent Assistant</span>
+                <span className="AgentMenu__model">Model: qwen2.5:7b · local</span>
             </div>
 
             <div className="AgentMenu__messages" />
