@@ -530,31 +530,64 @@ body {
   height: calc(100vh - var(--header-height));
   background: var(--color-surface);
   border-left: 1px solid var(--color-border);
-  padding: 12px 0;
+  padding: 0;
   z-index: 20;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden;
   transition: transform 0.25s ease;
 }
+
 .AgentMenu.closed {
   transform: translateX(380px);
 }
-.AgentMenu__panel {
-  border-bottom: 1px solid var(--color-border);
-}
+
 .AgentMenu__panel-header {
   padding: 12px 16px;
   font-size: 13px;
   font-weight: 500;
   color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
-.AgentMenu__panel-content {
-  padding: 8px 16px 16px;
+
+.AgentMenu__messages {
+  flex: 1;
+  min-height: 0;
   background: var(--color-bg);
 }
-.AgentMenu__hint {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  margin: 0;
+
+.AgentMenu__composer {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-surface);
+}
+
+.AgentMenu__input {
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.AgentMenu__composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.AgentMenu__send-btn {
+  min-width: 44px;
+  font-size: 1rem;
+  line-height: 1;
 }
