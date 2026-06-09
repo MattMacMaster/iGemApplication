@@ -10,6 +10,9 @@ const PORT = 5001;
 app.use(cors());
 app.use(express.json());
 
+const OLLAMA_URL = process.env.OLLAMA_URL ?? 'http://localhost:11434';
+const AGENT_MODEL = process.env.AGENT_MODEL ?? 'qwen2.5:7b';
+
 /*
 // Open I2C bus (bus 1 on Raspberry Pi)
 const bus = i2c.openSync(1);
@@ -92,6 +95,14 @@ app.post("/api/instr", (req, res) => {
   }
 });
 */
+/**
+ * POST /api/agent/chat
+ * ai chat helper
+ */
+app.post('/api/agent/chat', async (req, res) => {
+  const { messages } = req.body;
+  
+})
 
 /**
  * POST /api/cycles
