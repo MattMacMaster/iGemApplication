@@ -7,6 +7,9 @@ const db = require("./database");
 const app = express();
 const PORT = 5001;
 
+const fs = require('fs');
+const path = require('path');
+
 app.use(cors());
 app.use(express.json());
 
@@ -20,6 +23,11 @@ Your job is to help users design lab workflow cycles.
 Stay on topic. MOSMAGE, lab workflows, and synthetic biology. If asked anything unrelated, politely redirect back towards lab work.
 
 Be concise with your instructions, and speak with a polite and professional tone.`;
+
+const MOSMAGE_CONTEXT = fs.readFileSync(
+  path.join(__dirname, 'context', 'mosmage.md'),
+  'utf-8'
+);
 
 /*
 // Open I2C bus (bus 1 on Raspberry Pi)
@@ -123,6 +131,7 @@ app.post('/api/agent/chat', async (req, res) => {
         stream: false,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: MOSMAGE_CONTEXT },
           ...messages,
         ],
       }),
