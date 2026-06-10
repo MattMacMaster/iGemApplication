@@ -16,16 +16,15 @@ app.use(express.json());
 const OLLAMA_URL = process.env.OLLAMA_URL ?? 'http://localhost:11434';
 const AGENT_MODEL = process.env.AGENT_MODEL ?? 'qwen2.5:7b';
 
-const SYSTEM_PROMPT = `You are MOSMAGE Lab Assistant, an AI chatbot within the MOSMAGE Control Interface.
+const CONTEXT_DIR = path.join(__dirname, 'context');
 
-Your job is to help users design lab workflow cycles.
-
-Stay on topic. MOSMAGE, lab workflows, and synthetic biology. If asked anything unrelated, politely redirect back towards lab work.
-
-Be concise with your instructions, and speak with a polite and professional tone.`;
+const AGENT_INSTRUCTIONS = fs.readFileSync(
+  path.join(CONTEXT_DIR, 'INSTRUCTIONS.md'),
+  'utf-8'
+);
 
 const MOSMAGE_CONTEXT = fs.readFileSync(
-  path.join(__dirname, 'context', 'mosmage.md'),
+  path.join(CONTEXT_DIR, 'MOSMAGE.md'),
   'utf-8'
 );
 
@@ -129,9 +128,10 @@ app.post('/api/agent/chat', async (req, res) => {
       body: JSON.stringify({
         model: AGENT_MODEL,
         stream: false,
+        options: { temperature: 0.3 },
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'system', content: MOSMAGE_CONTEXT },
+          { role: 'system', content: AGENT_INSTRUCTIONS },
+          { role: 'system', content: `MOSMAGE reference:\n\n${MOSMAGE_CONTEXT}` },
           ...messages,
         ],
       }),
