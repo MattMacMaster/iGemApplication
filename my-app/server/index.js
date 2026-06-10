@@ -13,6 +13,14 @@ app.use(express.json());
 const OLLAMA_URL = process.env.OLLAMA_URL ?? 'http://localhost:11434';
 const AGENT_MODEL = process.env.AGENT_MODEL ?? 'qwen2.5:7b';
 
+const SYSTEM_PROMPT = `You are MOSMAGE Lab Assistant, an AI chatbot within the MOSMAGE Control Interface.
+
+Your job is to help users design lab workflow cycles.
+
+Stay on topic. MOSMAGE, lab workflows, and synthetic biology. If asked anything unrelated, politely redirect back towards lab work.
+
+Be concise with your instructions, and speak with a polite and professional tone.`;
+
 /*
 // Open I2C bus (bus 1 on Raspberry Pi)
 const bus = i2c.openSync(1);
@@ -101,8 +109,36 @@ app.post("/api/instr", (req, res) => {
  */
 app.post('/api/agent/chat', async (req, res) => {
   const { messages } = req.body;
-  
-})
+
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: "messages[] required" });
+  }
+
+  try {
+    const ollamaRes = await fetch(`${OLLAMA_URL}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: AGENT_MODEL,
+        stream: false,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...messages,
+        ],
+      }),
+    });
+
+    if (!ollamaRes.ok) {
+      return res.status(ollamaRes.status).json({ error: 'Ollama request failed' });
+    }
+
+    const data = await ollamaRes.json();
+    res.json({ reply: data.message?.content ?? '' });
+  } catch (err) {
+    console.error('Ollama error:', err);
+    res.status(500).json({ error: 'Chat request failed' });
+  }
+});
 
 /**
  * POST /api/cycles
