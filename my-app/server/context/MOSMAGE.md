@@ -11,7 +11,7 @@ MOSMAGE (Modular Open Source Automated Genome Engineering) is a platform focused
 Moves fluid through tubing via rotating rollers. A hardcoded amount of steps with selectable movement (right/left).
 
 ## Syringe Pump (syringePump)
-Precise volumetric dispensing. Allows users to adjust how many 'steps' for dispensing, as well as up/down movement of pump.
+Precise volumetric dispensing. Allows users to adjust how many 'steps' for dispensing, up/down movement of pump, which board (1-4) and axis (X, Y, Z, A) on respective board.
 
 ## Thermometer (thermometer)
 Temperature monitoring/setting.
