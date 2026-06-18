@@ -8,7 +8,7 @@ MOSMAGE (Modular Open Source Automated Genome Engineering) is a platform focused
 
 # Hardware Nodes (Exactly 5)
 ## Peristaltic Pump (peristalticPump)
-Moves fluid through tubing via rotating rollers. A hardcoded amount of steps with selectable movement (right/left).
+Moves fluid through tubing via rotating rollers. A hardcoded amount of steps with selectable movement (right/left), up/down movement of pump, which board (1-4) and axis (X, Y, Z, A) on respective board.
 
 ## Syringe Pump (syringePump)
 Precise volumetric dispensing. Allows users to adjust how many 'steps' for dispensing, up/down movement of pump, which board (1-4) and axis (X, Y, Z, A) on respective board.
