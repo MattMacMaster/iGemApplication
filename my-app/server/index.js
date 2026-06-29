@@ -114,12 +114,73 @@ app.post("/api/instr", (req, res) => {
  * POST /api/agent/chat
  * ai chat helper
  */
+function getCanvasNodeCount(canvasContext) {
+  if (!canvasContext) return 0;
+  if (Number.isInteger(canvasContext.nodeCount)) return canvasContext.nodeCount;
+  return Array.isArray(canvasContext.nodes) ? canvasContext.nodes.length : 0;
+}
+
+function isCanvasEmpty(canvasContext) {
+  return getCanvasNodeCount(canvasContext) === 0;
+}
+
+function buildCanvasSystemMessage(canvasContext) {
+  if (isCanvasEmpty(canvasContext)) {
+    return {
+      role: 'system',
+      content:
+        'The canvas is currently EMPTY: 0 nodes, 0 connections.\n' +
+        'This overrides any earlier messages in this conversation that mention nodes on the canvas.\n' +
+        'If the user asks what is on the canvas, answer that it is empty.',
+    };
+  }
+
+  const summary = canvasContext.summary ?? '';
+
+  return {
+    role: 'system',
+    content:
+      `Current canvas state (authoritative — there are exactly ${canvasContext.nodeCount} node(s) on screen):\n\n` +
+      `--- CANVAS INVENTORY ---\n${summary}\n--- END CANVAS INVENTORY ---`,
+  };
+}
+
+function prepareMessagesForModel(messages, canvasContext) {
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return [];
+  }
+
+  if (!isCanvasEmpty(canvasContext) || messages.length === 1) {
+    return messages;
+  }
+
+  const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user');
+  return lastUserMessage ? [lastUserMessage] : messages;
+}
+
+function injectCanvasContext(messages, canvasContext) {
+  const canvasMessage = buildCanvasSystemMessage(canvasContext);
+
+  if (messages.length === 0) {
+    return [canvasMessage];
+  }
+
+  const last = messages[messages.length - 1];
+  if (last.role === 'user') {
+    return [...messages.slice(0, -1), canvasMessage, last];
+  }
+
+  return [...messages, canvasMessage];
+}
+
 app.post('/api/agent/chat', async (req, res) => {
-  const { messages } = req.body;
+  const { messages, canvasContext } = req.body;
 
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: "messages[] required" });
   }
+
+  const modelMessages = prepareMessagesForModel(messages, canvasContext);
 
   try {
     const ollamaRes = await fetch(`${OLLAMA_URL}/api/chat`, {
@@ -128,11 +189,11 @@ app.post('/api/agent/chat', async (req, res) => {
       body: JSON.stringify({
         model: AGENT_MODEL,
         stream: false,
-        options: { temperature: 0.3 },
+        options: { temperature: 0.1 },
         messages: [
           { role: 'system', content: AGENT_INSTRUCTIONS },
           { role: 'system', content: `MOSMAGE reference:\n\n${MOSMAGE_CONTEXT}` },
-          ...messages,
+          ...injectCanvasContext(modelMessages, canvasContext),
         ],
       }),
     });

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { serializeCanvasContext } from '../../utils/serializeCanvasContext';
 
 const API_BASE = 'http://localhost:5001/api';
 
-const AgentMenu = ({ isOpen }) => {
+const AgentMenu = ({ isOpen, nodes, edges, cycleName }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -29,10 +30,12 @@ const AgentMenu = ({ isOpen }) => {
         setLoading(true);
 
         try {
+            const canvasContext = serializeCanvasContext(nodes, edges, cycleName);
+
             const res = await fetch(`${API_BASE}/agent/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messages: nextMessages }),
+                body: JSON.stringify({ messages: nextMessages, canvasContext }),
             });
 
             const data = await res.json().catch(() => null);

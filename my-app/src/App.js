@@ -300,7 +300,12 @@ const { onSaveCycle, onSaveAsNew } = useCycleSave({
         onOpenLoadMenu={handleOpenLoadMenu}
       />
 
-      <AgentMenu isOpen={isAgentOpen} />
+      <AgentMenu
+        isOpen={isAgentOpen}
+        nodes={nodes}
+        edges={edges}
+        cycleName={activeCycleName}
+      />
 
       <LoadCycleDialog
         open={showLoadMenu}
