@@ -3,6 +3,7 @@ const cors = require("cors");
 // const i2c = require("i2c-bus");
 // const { Gpio } = require("onoff");
 const db = require("./database");
+const { chat, listModels, DEFAULT_MODEL_ID } = require("./llm");
 
 const app = express();
 const PORT = 5001;
@@ -12,9 +13,6 @@ const path = require('path');
 
 app.use(cors());
 app.use(express.json());
-
-const OLLAMA_URL = process.env.OLLAMA_URL ?? 'http://localhost:11434';
-const AGENT_MODEL = process.env.AGENT_MODEL ?? 'qwen2.5:7b';
 
 const CONTEXT_DIR = path.join(__dirname, 'context');
 
@@ -158,56 +156,88 @@ function prepareMessagesForModel(messages, canvasContext) {
   return lastUserMessage ? [lastUserMessage] : messages;
 }
 
-function injectCanvasContext(messages, canvasContext) {
-  const canvasMessage = buildCanvasSystemMessage(canvasContext);
+/**
+ * Build provider-safe chat messages.
+ * Remote APIs (OpenRouter/Gemini) often ignore all but the first system message,
+ * so instructions + MOSMAGE + canvas are merged into one system block, and the
+ * live canvas is also attached to the latest user message for grounding.
+ */
+function buildAgentChatMessages({ instructions, mosmageContext, canvasContext, messages }) {
+  const canvasText = buildCanvasSystemMessage(canvasContext).content;
+  const systemContent = [
+    instructions.trim(),
+    '',
+    'MOSMAGE reference:',
+    mosmageContext.trim(),
+    '',
+    canvasText,
+  ].join('\n');
 
-  if (messages.length === 0) {
-    return [canvasMessage];
+  const conversation = prepareMessagesForModel(messages, canvasContext)
+    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string');
+
+  if (conversation.length === 0) {
+    return [{ role: 'system', content: systemContent }];
   }
 
-  const last = messages[messages.length - 1];
-  if (last.role === 'user') {
-    return [...messages.slice(0, -1), canvasMessage, last];
-  }
+  const lastIdx = conversation.length - 1;
+  const grounded = conversation.map((message, index) => {
+    if (index !== lastIdx || message.role !== 'user') return message;
+    return {
+      role: 'user',
+      content:
+        `${message.content}\n\n` +
+        `[Live canvas ground truth — answer from this, not from earlier chat guesses]\n` +
+        `${canvasText}`,
+    };
+  });
 
-  return [...messages, canvasMessage];
+  return [{ role: 'system', content: systemContent }, ...grounded];
 }
 
 app.post('/api/agent/chat', async (req, res) => {
-  const { messages, canvasContext } = req.body;
+  const { messages, canvasContext, modelId } = req.body;
+  const selectedModelId = typeof modelId === 'string' && modelId
+    ? modelId
+    : DEFAULT_MODEL_ID;
 
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: "messages[] required" });
   }
 
-  const modelMessages = prepareMessagesForModel(messages, canvasContext);
+  const modelMessages = buildAgentChatMessages({
+    instructions: AGENT_INSTRUCTIONS,
+    mosmageContext: MOSMAGE_CONTEXT,
+    canvasContext,
+    messages,
+  });
 
   try {
-    const ollamaRes = await fetch(`${OLLAMA_URL}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: AGENT_MODEL,
-        stream: false,
-        options: { temperature: 0.1 },
-        messages: [
-          { role: 'system', content: AGENT_INSTRUCTIONS },
-          { role: 'system', content: `MOSMAGE reference:\n\n${MOSMAGE_CONTEXT}` },
-          ...injectCanvasContext(modelMessages, canvasContext),
-        ],
-      }),
+    const result = await chat({
+      modelId: selectedModelId,
+      messages: modelMessages,
+      allowFallback: true,
     });
 
-    if (!ollamaRes.ok) {
-      return res.status(ollamaRes.status).json({ error: 'Ollama request failed' });
-    }
-
-    const data = await ollamaRes.json();
-    res.json({ reply: data.message?.content ?? '' });
+    res.json({
+      reply: result.content ?? '',
+      modelId: result.modelId,
+      usedFallback: Boolean(result.usedFallback),
+    });
   } catch (err) {
-    console.error('Ollama error:', err);
-    res.status(500).json({ error: 'Chat request failed' });
+    console.error('Agent chat error:', err);
+    res.status(err.status || 500).json({
+      error: err.message || 'Chat request failed',
+    });
   }
+});
+
+/**
+ * GET /api/agent/models
+ * Curated free/local models available to the Agent dropdown.
+ */
+app.get('/api/agent/models', (_req, res) => {
+  res.json(listModels());
 });
 
 /**

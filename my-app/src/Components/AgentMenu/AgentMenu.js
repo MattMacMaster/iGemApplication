@@ -1,17 +1,41 @@
 import { useState, useEffect, useRef } from 'react';
 import { serializeCanvasContext } from '../../utils/serializeCanvasContext';
-
-const API_BASE = 'http://localhost:5001/api';
+import { chatWithAgent, listAgentModels } from '../../api/agentApi';
 
 const AgentMenu = ({ isOpen, nodes, edges, cycleName }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [models, setModels] = useState([]);
+    const [modelId, setModelId] = useState('');
     const bottomRef = useRef(null);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, loading]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        (async () => {
+            const result = await listAgentModels();
+            if (cancelled || !result.ok) return;
+
+            const list = result.data?.models ?? [];
+            setModels(list);
+
+            const preferred =
+                list.find((m) => m.id === result.data?.defaultModelId)?.id ||
+                list.find((m) => m.available)?.id ||
+                list[0]?.id ||
+                '';
+            setModelId(preferred);
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const handleClear = () => {
         setMessages([]);
@@ -31,25 +55,27 @@ const AgentMenu = ({ isOpen, nodes, edges, cycleName }) => {
 
         try {
             const canvasContext = serializeCanvasContext(nodes, edges, cycleName);
-
-            const res = await fetch(`${API_BASE}/agent/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messages: nextMessages, canvasContext }),
+            const chatMessages = nextMessages.map(({ role, content }) => ({ role, content }));
+            const result = await chatWithAgent({
+                messages: chatMessages,
+                canvasContext,
+                modelId,
             });
 
-            const data = await res.json().catch(() => null);
-
-            if (!res.ok) {
-                setMessages(prev => [...prev, {
+            if (!result.ok) {
+                setMessages((prev) => [...prev, {
                     role: 'assistant',
-                    content: `Error: ${data?.error ?? `Request failed (${res.status})`}`,
+                    content: `Error: ${result.error}`,
                 }]);
-            } else {
-                setMessages(prev => [...prev, { role: 'assistant', content: data?.reply ?? '' }]);
+                return;
             }
+
+            setMessages((prev) => [...prev, {
+                role: 'assistant',
+                content: result.reply,
+            }]);
         } catch {
-            setMessages(prev => [...prev, {
+            setMessages((prev) => [...prev, {
                 role: 'assistant',
                 content: 'Could not reach the server. Make sure the backend is running on port 5001.',
             }]);
@@ -68,12 +94,33 @@ const AgentMenu = ({ isOpen, nodes, edges, cycleName }) => {
         <aside className={`AgentMenu ${isOpen ? 'open' : 'closed'}`}>
             <div className="AgentMenu__panel-header">
                 <span className="AgentMenu__title">Agent Assistant</span>
-                <span className="AgentMenu__model">Model: qwen2.5:7b · local</span>
+                <label className="AgentMenu__model-picker">
+                    <span className="AgentMenu__model-picker-label">Model</span>
+                    <select
+                        className="AgentMenu__model-select"
+                        value={modelId}
+                        onChange={(e) => setModelId(e.target.value)}
+                        disabled={loading || models.length === 0}
+                    >
+                        {models.map((m) => (
+                            <option
+                                key={m.id}
+                                value={m.id}
+                                disabled={!m.available}
+                            >
+                                {m.label}
+                                {!m.available ? ' (set API key)' : ''}
+                            </option>
+                        ))}
+                    </select>
+                </label>
             </div>
 
             <div className="AgentMenu__messages">
                 {messages.length === 0 && (
-                    <p className="AgentMenu__empty">Ask about lab workflows, cycles, or MOSMAGE nodes.</p>
+                    <p className="AgentMenu__empty">
+                        Ask about lab workflows, cycles, or MOSMAGE nodes.
+                    </p>
                 )}
                 {messages.map((msg, i) => (
                     <div

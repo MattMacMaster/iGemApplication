@@ -647,6 +647,7 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .AgentMenu__send-btn {
@@ -668,8 +669,30 @@ body {
   font-weight: 500;
   color: var(--color-text);
 }
-.AgentMenu__model {
-  font-size: 11px;
-  font-weight: 400;
+
+.AgentMenu__model-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.AgentMenu__model-picker-label {
+  font-size: 10px;
+  font-weight: 600;
   color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.AgentMenu__model-select {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
 }
