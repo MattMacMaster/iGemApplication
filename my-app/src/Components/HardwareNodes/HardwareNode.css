@@ -99,6 +99,17 @@
   color: var(--color-text);
 }
 
+.hardware-node .node-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hardware-node .node-action-btn--cancel:hover:not(:disabled) {
+  background: #b42318;
+  border-color: #b42318;
+  color: #fff;
+}
+
 .hardware-node .node-message {
   font-size: .75rem;
   color: #22c55e;
@@ -115,4 +126,26 @@ input::-webkit-outer-spin-button {
 .setting-input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+.node-actions {
+  display: flex;
+  gap: 0;
+  margin-top: 10px;
+}
+
+.hardware-node .node-actions .node-action-btn {
+  width: auto;
+  flex: 1;
+  margin: 0;
+  border-radius: 0;
+}
+
+.hardware-node .node-actions .node-action-btn:first-child {
+  border-right: none;
+  border-radius: 0 0 0 9px;
+}
+
+.hardware-node .node-actions .node-action-btn:last-child {
+  border-radius: 0 0 9px 0;
 }

@@ -54,6 +54,23 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
     }
   };
 
+  const CallCancel = async () => {
+    try {
+      const res = await fetch("http://localhost:5001/api/cancel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ board: Number(boardVal) }),
+      });
+
+      const data = await res.json();
+      setMessage(data.message);
+    } catch (err) {
+      console.error("Cancel error:", err);
+    }
+  };
+
   const handleStepChange = (e) => {
     setSteps(e.target.value);
 
@@ -163,20 +180,28 @@ const SyringePumpNode = ({ data, isConnectable, selected }) => {
         </div>
       </div>
 
-      <button
-        className="node-action-btn"
-        onClick={() =>
-          CallBackend({
-            type: "Motor",
-            axis: axisVal,
-            board: Number(boardVal),
-            compInstr: { steps: steps, Direction: directionVal }
-          })
-        }
-      >
-        Send Instruction
-      </button>
-
+      <div className="node-actions">
+        <button
+          className="node-action-btn"
+          onClick={() =>
+            CallBackend({
+              type: "Motor",
+              axis: axisVal,
+              board: Number(boardVal),
+              compInstr: { steps: steps, Direction: directionVal }
+            })
+          }
+        >
+          Send Instruction
+        </button>
+        <button
+          className="node-action-btn node-action-btn--cancel"
+          disabled={!boardVal}
+          onClick={CallCancel}
+        >
+          Cancel
+        </button>
+      </div>
       {message && <p className="node-message">{message}</p>}
     </div>
   );
