@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
-const i2c = require("i2c-bus");
-const { Gpio } = require("onoff");
+// const i2c = require("i2c-bus");
+// const { Gpio } = require("onoff");
 const db = require("./database");
 
 const app = express();
@@ -10,6 +10,7 @@ const PORT = 5001;
 app.use(cors());
 app.use(express.json());
 
+/**
 // Open I2C bus (bus 1 on Raspberry Pi)
 const bus = i2c.openSync(1);
 const SLAVE_ADDRESS = 0x04;
@@ -90,6 +91,7 @@ app.post("/api/instr", (req, res) => {
     res.status(500).json({ error: "I2C failed" });
   }
 });
+*/
 
 /**
  * POST /api/cycles
