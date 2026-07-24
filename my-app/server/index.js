@@ -94,6 +94,19 @@ app.post("/api/instr", (req, res) => {
 */
 
 /**
+ * POST /api/cancel
+ * Halts hardware instructions.
+ */
+app.post("/api/cancel", (req, res) => {
+  const { board } = req.body ?? {};
+
+  const boards = Number.isInteger(board) && board >= 1 && board <= 4
+  ? [board] // cancel this specific board
+  : [1, 2, 3, 4]; // cancel all in future
+
+})
+
+/**
  * POST /api/cycles
  * Saves current canvas as a named cycle.
  */

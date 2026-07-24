@@ -26,6 +26,8 @@ const int dirAPin  = 13; // change if different
 const int pulseWidthMicros = 100;   // step pulse width
 const int millisBtwnSteps  = 1000;  // delay between steps (µs)
 
+
+
 /*  Command queue  */
 #define QUEUE_SIZE 10
 
@@ -40,6 +42,11 @@ MotorCommand commandQueue[QUEUE_SIZE];
 //Will need testing if we want to move away from this for corruption reasons
 volatile int queueHead = 0;
 volatile int queueTail = 0;
+
+/*  Execution state (shared with cancel interrupt)  */
+volatile bool busy = false;
+volatile int stepsRemaining = 0;
+volatile bool cancelRequested = false;
 
 /*  Queue helpers  */
 bool queueIsEmpty() { return queueHead == queueTail; }
@@ -57,6 +64,18 @@ bool dequeueCommand(MotorCommand &cmd) {
   cmd = commandQueue[queueHead];
   queueHead = (queueHead + 1) % QUEUE_SIZE;
   return true;
+}
+
+void clearQueue() {
+  queueHead = 0;
+  queueTail = 0;
+}
+
+// Called from the I2C interrupt, flag cancel and drop queued commands.
+// Stopping the active move happens in loop().
+void requestCancel() {
+  cancelRequested = true;
+  clearQueue();
 }
 
 /*  Axis selection helper  */
@@ -93,9 +112,17 @@ void setup() {
 /*  Main loop  */
 void loop() {
   delay(10); //We can speed this up later
- static bool busy = false;
+
   static MotorCommand currentCmd;
-  static int stepsRemaining = 0;
+
+  // Cancel: stop the active move and ensure the queue is empty.
+  if (cancelRequested) {
+    busy = false;
+    stepsRemaining = 0;
+    clearQueue();
+    cancelRequested = false;
+    return;
+  }
 
   if (!busy) {
     if (dequeueCommand(currentCmd)) {
@@ -125,6 +152,13 @@ void receiveData(int howMany) {
   if (Wire.available()) Wire.read(); // discard register byte
   while (Wire.available()) received += (char)Wire.read();
   received.trim();
+
+  // Cancel if C is entered
+  if (received == "C") {
+    requestCancel();
+    return;
+  }
+
   if (received.length() < 5) return; // minimal valid "X up 1"
 
   // Parse axis, direction, steps
@@ -145,4 +179,3 @@ void receiveData(int howMany) {
 
   enqueueCommand(axis, direction, steps);
 }
-
