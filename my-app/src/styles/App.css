@@ -670,14 +670,14 @@ body {
   color: var(--color-text);
 }
 
-.AgentMenu__model-picker {
+.AgentMenu__model-status {
   display: flex;
   flex-direction: column;
   gap: 4px;
   margin-top: 8px;
 }
 
-.AgentMenu__model-picker-label {
+.AgentMenu__model-status-label {
   font-size: 10px;
   font-weight: 600;
   color: var(--color-text-muted);
@@ -685,14 +685,8 @@ body {
   letter-spacing: 0.04em;
 }
 
-.AgentMenu__model-select {
-  width: 100%;
-  box-sizing: border-box;
-  font-family: inherit;
+.AgentMenu__model-status-value {
   font-size: 12px;
-  padding: 6px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
   color: var(--color-text);
+  line-height: 1.3;
 }

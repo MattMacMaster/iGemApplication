@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { serializeCanvasContext } from '../../utils/serializeCanvasContext';
 import { chatWithAgent, listAgentModels } from '../../api/agentApi';
 
-const AgentMenu = ({ isOpen, nodes, edges, cycleName }) => {
+const AgentMenu = ({ isOpen, nodes, edges, cycleName, onApplyCycle }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [models, setModels] = useState([]);
-    const [modelId, setModelId] = useState('');
+    const [activeModelLabel, setActiveModelLabel] = useState('Gemini 3.1 Flash-Lite (Free Tier)');
+    const [usedFallback, setUsedFallback] = useState(false);
     const bottomRef = useRef(null);
 
     useEffect(() => {
@@ -22,14 +22,13 @@ const AgentMenu = ({ isOpen, nodes, edges, cycleName }) => {
             if (cancelled || !result.ok) return;
 
             const list = result.data?.models ?? [];
-            setModels(list);
-
             const preferred =
-                list.find((m) => m.id === result.data?.defaultModelId)?.id ||
-                list.find((m) => m.available)?.id ||
-                list[0]?.id ||
-                '';
-            setModelId(preferred);
+                list.find((m) => m.id === result.data?.defaultModelId) ||
+                list.find((m) => m.available) ||
+                list[0];
+            if (preferred?.label) {
+                setActiveModelLabel(preferred.label);
+            }
         })();
 
         return () => {
@@ -59,7 +58,6 @@ const AgentMenu = ({ isOpen, nodes, edges, cycleName }) => {
             const result = await chatWithAgent({
                 messages: chatMessages,
                 canvasContext,
-                modelId,
             });
 
             if (!result.ok) {
@@ -68,6 +66,15 @@ const AgentMenu = ({ isOpen, nodes, edges, cycleName }) => {
                     content: `Error: ${result.error}`,
                 }]);
                 return;
+            }
+
+            if (result.modelLabel) {
+                setActiveModelLabel(result.modelLabel);
+                setUsedFallback(Boolean(result.usedFallback));
+            }
+
+            if (result.type === 'cycle' && result.cycle) {
+                onApplyCycle(result.cycle);
             }
 
             setMessages((prev) => [...prev, {
@@ -94,26 +101,13 @@ const AgentMenu = ({ isOpen, nodes, edges, cycleName }) => {
         <aside className={`AgentMenu ${isOpen ? 'open' : 'closed'}`}>
             <div className="AgentMenu__panel-header">
                 <span className="AgentMenu__title">Agent Assistant</span>
-                <label className="AgentMenu__model-picker">
-                    <span className="AgentMenu__model-picker-label">Model</span>
-                    <select
-                        className="AgentMenu__model-select"
-                        value={modelId}
-                        onChange={(e) => setModelId(e.target.value)}
-                        disabled={loading || models.length === 0}
-                    >
-                        {models.map((m) => (
-                            <option
-                                key={m.id}
-                                value={m.id}
-                                disabled={!m.available}
-                            >
-                                {m.label}
-                                {!m.available ? ' (set API key)' : ''}
-                            </option>
-                        ))}
-                    </select>
-                </label>
+                <div className="AgentMenu__model-status">
+                    <span className="AgentMenu__model-status-label">Model</span>
+                    <span className="AgentMenu__model-status-value">
+                        {activeModelLabel}
+                        {usedFallback ? ' (fallback)' : ''}
+                    </span>
+                </div>
             </div>
 
             <div className="AgentMenu__messages">

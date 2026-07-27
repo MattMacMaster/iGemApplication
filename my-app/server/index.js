@@ -3,7 +3,7 @@ const cors = require("cors");
 // const i2c = require("i2c-bus");
 // const { Gpio } = require("onoff");
 const db = require("./database");
-const { chat, listModels, DEFAULT_MODEL_ID } = require("./llm");
+const { chat, listModels } = require("./llm");
 
 const app = express();
 const PORT = 5001;
@@ -15,6 +15,8 @@ app.use(cors());
 app.use(express.json());
 
 const CONTEXT_DIR = path.join(__dirname, 'context');
+
+const { handleAgentMessage } = require('./agent/handleMessage');
 
 const AGENT_INSTRUCTIONS = fs.readFileSync(
   path.join(CONTEXT_DIR, 'INSTRUCTIONS.md'),
@@ -196,34 +198,34 @@ function buildAgentChatMessages({ instructions, mosmageContext, canvasContext, m
 }
 
 app.post('/api/agent/chat', async (req, res) => {
-  const { messages, canvasContext, modelId } = req.body;
-  const selectedModelId = typeof modelId === 'string' && modelId
-    ? modelId
-    : DEFAULT_MODEL_ID;
-
+  const { messages, canvasContext } = req.body;
   if (!Array.isArray(messages) || messages.length === 0) {
-    return res.status(400).json({ error: "messages[] required" });
+    return res.status(400).json({ error: 'messages[] required' });
   }
-
-  const modelMessages = buildAgentChatMessages({
-    instructions: AGENT_INSTRUCTIONS,
-    mosmageContext: MOSMAGE_CONTEXT,
-    canvasContext,
-    messages,
-  });
-
   try {
-    const result = await chat({
-      modelId: selectedModelId,
-      messages: modelMessages,
-      allowFallback: true,
+    const result = await handleAgentMessage({
+      messages,
+      canvasContext,
+      chatFn: async ({ messages, canvasContext }) => {
+        const modelMessages = buildAgentChatMessages({
+          instructions: AGENT_INSTRUCTIONS,
+          mosmageContext: MOSMAGE_CONTEXT,
+          canvasContext,
+          messages,
+        });
+        const r = await chat({
+          messages: modelMessages,
+          allowFallback: true,
+        });
+        return {
+          reply: r.content ?? '',
+          modelId: r.modelId,
+          modelLabel: r.modelLabel,
+          usedFallback: Boolean(r.usedFallback),
+        };
+      },
     });
-
-    res.json({
-      reply: result.content ?? '',
-      modelId: result.modelId,
-      usedFallback: Boolean(result.usedFallback),
-    });
+    res.json(result);
   } catch (err) {
     console.error('Agent chat error:', err);
     res.status(err.status || 500).json({
@@ -234,7 +236,7 @@ app.post('/api/agent/chat', async (req, res) => {
 
 /**
  * GET /api/agent/models
- * Curated free/local models available to the Agent dropdown.
+ * Model catalog / default label for the agent status display.
  */
 app.get('/api/agent/models', (_req, res) => {
   res.json(listModels());

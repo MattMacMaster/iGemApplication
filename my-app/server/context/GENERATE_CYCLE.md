@@ -1,6 +1,6 @@
 # Lab workflow notes
 
-Reference material for future AI cycle generation. **Not wired into the running agent yet.**
+Reference material for AI cycle generation (loaded by the generate-cycle agent path).
 This file captures MOSMAGE-relevant lab talk and how it maps to canvas nodes.
 
 ## Hardware → node types
@@ -12,11 +12,22 @@ This file captures MOSMAGE-relevant lab talk and how it maps to canvas nodes.
 - **Electroporate, transform, transformation, pulse/shock cells** → electroporator
 - Electroporation in MOSMAGE is driven by syringe push → default transform path is **syringePump → electroporator**
 
-## Node settings (when generation is added later)
+## Node labels (required)
+- Always use these exact labels — never rename nodes for the protocol:
+  - peristalticPump → "Peristaltic Pump"
+  - syringePump → "Syringe Pump"
+  - thermometer → "Thermometer"
+  - spectrometer → "Spectrometer"
+  - electroporator → "Electroporator"
+
+## Node settings
 - syringePump / peristalticPump: steps, boardVal (1-4), axis (X|Y|Z|A), direction (up|down|left|right)
 - thermometer: temperature
 - spectrometer / electroporator: often `{}` until device settings are defined
 - Only fill settings the user explicitly stated; do not invent defaults
+
+## Cycle name
+- Optional. Prefer a brief summary over a fancy cycle title; the UI does not auto-save under the generated name.
 
 ## Named recipes (lab lingo → node order)
 

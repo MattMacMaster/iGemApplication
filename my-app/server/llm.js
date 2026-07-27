@@ -29,7 +29,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? '';
 
 
 const AGENT_MODELS = [
-  { id: 'gemini:gemini-3.1-flash-lite', provider: 'gemini', model: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite (Free Tier' },
+  { id: 'gemini:gemini-3.1-flash-lite', provider: 'gemini', model: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite (Free Tier)' },
   { id: 'gemini:gemini-3-flash-preview', provider: 'gemini', model: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview (Free Tier)' },
   { id: 'openrouter:openrouter/free', provider: 'openrouter', model: 'openrouter/free', label: 'OpenRouter Free (Carousel)' },
   { id: 'ollama:qwen2.5:1.5b', provider: 'ollama', model: 'qwen2.5:1.5b', label: 'Qwen 2.5 1.5B (Local)' },
@@ -126,6 +126,7 @@ async function chatOpenAICompat({
   model,
   messages,
   temperature,
+  json = false,
   extraHeaders = {},
 }) {
   let res;
@@ -137,7 +138,13 @@ async function chatOpenAICompat({
         Authorization: `Bearer ${apiKey}`,
         ...extraHeaders,
       },
-      body: JSON.stringify({ model, messages, temperature, stream: false }),
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature,
+        stream: false,
+        ...(json ? { response_format: { type: 'json_object' } } : {}),
+      }),
     });
   } catch {
     throw httpError(`${provider} request failed`, 502);
@@ -166,6 +173,7 @@ async function chatOnce(selection, { messages, json, temperature }) {
       model: selection.model,
       messages,
       temperature,
+      json,
       extraHeaders: {
         'HTTP-Referer': process.env.OPENROUTER_HTTP_REFERER ?? 'http://localhost:3000',
         'X-Title': process.env.OPENROUTER_APP_TITLE ?? 'MOSMAGE',
@@ -180,6 +188,7 @@ async function chatOnce(selection, { messages, json, temperature }) {
       model: selection.model,
       messages,
       temperature,
+      json,
     });
   }
   throw httpError(`Unknown provider: ${selection.provider}`, 400);
@@ -194,62 +203,101 @@ function isModelConfigured(entry) {
 }
 
 /**
- * Try order: selected first, then Gemini → OpenRouter → one local Ollama.
- * Does not walk every Ollama size on failure (that would be slow).
+ * Fixed order: Flash-Lite → Gemini 3 → OpenRouter → Ollama.
+ * Skips providers that are not configured.
  */
-function buildTryQueue(selectedId) {
-  const selected = resolveModelSelection(selectedId);
+function buildTryQueue() {
   const queue = [];
   const seen = new Set();
 
-  const push = (entry) => {
-    if (!entry || seen.has(entry.id) || !isModelConfigured(entry)) return;
+  for (const entry of AGENT_MODELS) {
+    if (!entry || seen.has(entry.id) || !isModelConfigured(entry)) continue;
     seen.add(entry.id);
     queue.push(entry);
-  };
-
-  push(selected);
-
-  for (const entry of AGENT_MODELS) {
-    if (entry.provider === 'ollama') continue;
-    push(entry);
   }
-
-  if (selected.provider === 'ollama') {
-    // Already tried the user's local choice; don't cascade other local sizes.
-  } else {
-    push(findModel(FALLBACK_MODEL_ID) || AGENT_MODELS.find((m) => m.provider === 'ollama'));
-  }
-
   return queue;
 }
 
-/** Chat with selected model; on failure walk Gemini → OpenRouter → local Ollama. */
+/** Chat with fixed fallback order. modelId is ignored when allowFallback is true. */
 async function chat({
-  modelId,
   messages,
   json = false,
   temperature = 0.1,
   allowFallback = true,
 }) {
-  const queue = allowFallback ? buildTryQueue(modelId) : [resolveModelSelection(modelId)];
+  const queue = allowFallback
+    ? buildTryQueue()
+    : [findModel(DEFAULT_MODEL_ID)].filter(Boolean);
   let lastErr;
 
   for (let i = 0; i < queue.length; i++) {
     const candidate = queue[i];
     try {
       const result = await chatOnce(candidate, { messages, json, temperature });
+      if (json) {
+        const extracted = extractJsonObject(result.content);
+        if (!extracted) {
+          throw httpError(`${candidate.id} did not return valid JSON`, 502);
+        }
+        return {
+          ...result,
+          content: extracted,
+          modelId: candidate.id,
+          modelLabel: candidate.label,
+          usedFallback: i > 0,
+        };
+      }
       return {
         ...result,
         modelId: candidate.id,
+        modelLabel: candidate.label,
         usedFallback: i > 0,
       };
     } catch (err) {
+      console.warn(`[llm] ${candidate.id} failed:`, err.message);
       lastErr = err;
     }
   }
 
   throw lastErr || httpError('All configured models failed.', 503);
+}
+
+/** Pull a JSON object out of model text (raw or markdown-fenced). */
+function extractJsonObject(text) {
+  if (typeof text !== 'string') return null;
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    return typeof parsed === 'object' && parsed !== null ? trimmed : null;
+  } catch {
+    // continue
+  }
+
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced) {
+    try {
+      const parsed = JSON.parse(fenced[1].trim());
+      if (typeof parsed === 'object' && parsed !== null) return fenced[1].trim();
+    } catch {
+      // continue
+    }
+  }
+
+  const start = trimmed.indexOf('{');
+  const end = trimmed.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    const slice = trimmed.slice(start, end + 1);
+    try {
+      const parsed = JSON.parse(slice);
+      if (typeof parsed === 'object' && parsed !== null) return slice;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
 }
 
 module.exports = {

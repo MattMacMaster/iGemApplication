@@ -24,6 +24,7 @@ import AgentMenu from './Components/AgentMenu/AgentMenu';
 import { useCycleSave } from './hooks/useCycleSave';
 import { useCycleLoader } from './hooks/useCycleLoader';
 import { useCycleDelete } from './hooks/useCycleDelete';
+import { applyCycleToCanvas } from './canvas/addCycleToCanvas';
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
@@ -105,6 +106,18 @@ const { onSaveCycle, onSaveAsNew } = useCycleSave({
   setActiveCycleId,
   setActiveCycleName,
 });
+
+  /**
+   * Cycle applied from agent.
+   */
+  const onApplyCycle = useCallback(
+    (cycle) => {
+      applyCycleToCanvas(cycle, { setNodes, setEdges, updateNodeSettings });
+      setActiveCycleId(null);
+      setActiveCycleName('');
+    },
+    [updateNodeSettings, setActiveCycleId, setActiveCycleName]
+  );
 
   /**
    * Node types.
@@ -305,6 +318,7 @@ const { onSaveCycle, onSaveAsNew } = useCycleSave({
         nodes={nodes}
         edges={edges}
         cycleName={activeCycleName}
+        onApplyCycle={onApplyCycle}
       />
 
       <LoadCycleDialog

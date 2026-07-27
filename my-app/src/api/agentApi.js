@@ -19,11 +19,11 @@ export async function listAgentModels() {
   return { ok: true, data };
 }
 
-export async function chatWithAgent({ messages, canvasContext, modelId }) {
+export async function chatWithAgent({ messages, canvasContext }) {
   const res = await fetch(`${API_BASE}/agent/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, canvasContext, modelId }),
+    body: JSON.stringify({ messages, canvasContext }),
   });
 
   const data = await parseJsonSafe(res);
@@ -37,8 +37,11 @@ export async function chatWithAgent({ messages, canvasContext, modelId }) {
 
   return {
     ok: true,
+    type: data?.type ?? 'message',
     reply: data?.reply ?? '',
-    modelId: data?.modelId ?? modelId ?? null,
+    cycle: data?.cycle ?? null,
+    modelId: data?.modelId ?? null,
+    modelLabel: data?.modelLabel ?? null,
     usedFallback: Boolean(data?.usedFallback),
   };
 }
