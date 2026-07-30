@@ -262,6 +262,22 @@ const { onSaveCycle, onSaveAsNew } = useCycleSave({
 
         <div className="app-header__actions">
           <button
+            className="btn-cancel-all"
+            onClick={async () => {
+              try {
+                await fetch("http://localhost:5001/api/cancel", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({}),
+                });
+              } catch (err) {
+                console.error(err);
+              }
+            }}
+          >
+            Cancel All
+          </button>
+          <button
             className="btn-secondary"
             onClick={() =>
               setShowSystemPanel(!showSystemPanel)

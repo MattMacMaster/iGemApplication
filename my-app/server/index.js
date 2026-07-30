@@ -10,7 +10,6 @@ const PORT = 5001;
 app.use(cors());
 app.use(express.json());
 
-/**
 // Open I2C bus (bus 1 on Raspberry Pi)
 const bus = i2c.openSync(1);
 const SLAVE_ADDRESS = 0x04;
@@ -91,7 +90,6 @@ app.post("/api/instr", (req, res) => {
     res.status(500).json({ error: "I2C failed" });
   }
 });
-*/
 
 /**
  * POST /api/cancel
@@ -104,7 +102,32 @@ app.post("/api/cancel", (req, res) => {
   ? [board] // cancel this specific board
   : [1, 2, 3, 4]; // cancel all in future
 
-})
+  try {
+    for (const b of boards) {
+      const bits = to3BitArray(b);
+      writeBits(bits);
+
+      const bytes = Buffer.from("C", "utf-8");
+      bus.writeByteSync(TCA_ADDRESS, 0x00, 1 << b); //Channel select
+      bus.writeI2cBlockSync(
+        SLAVE_ADDRESS,
+        0x00, // command byte (same as Python)
+        bytes.length,
+        bytes
+      );
+    }
+
+    res.json({
+      message:
+        boards.length === 1
+          ? `Cancel sent to board ${boards[0]}`
+          : "Cancel sent to all boards",
+    });
+  } catch (err) {
+    console.error("I2C Error:", err);
+    res.status(500).json({ error: "I2C failed" });
+  }
+});
 
 /**
  * POST /api/cycles
