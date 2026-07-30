@@ -20,6 +20,7 @@ import SpectrometerNode from './Components/HardwareNodes/SpectrometerNode';
 import Sidemenu from './Components/SideMenu/Sidemenu';
 import SystemPanel from "./Components/SystemPanel/SystemPanel";
 import AgentMenu from './Components/AgentMenu/AgentMenu';
+import AgentSettingsDialog from './Components/AgentSettingsDialog/AgentSettingsDialog';
 
 import { useCycleSave } from './hooks/useCycleSave';
 import { useCycleLoader } from './hooks/useCycleLoader';
@@ -39,6 +40,7 @@ function App() {
   const [showSystemPanel, setShowSystemPanel] = useState(false);
 
   const [isAgentOpen, setIsAgentOpen] = useState(false);
+  const [showAgentSettings, setShowAgentSettings] = useState(false);
 
   const [isDarkMode, setIsDarkMode] = useState(
     () => document.documentElement.getAttribute('data-theme') === 'dark'
@@ -311,6 +313,7 @@ const { onSaveCycle, onSaveAsNew } = useCycleSave({
         onSaveAsNew={onSaveAsNew}
         activeCycleName={activeCycleName}
         onOpenLoadMenu={handleOpenLoadMenu}
+        onOpenAgentSettings={() => setShowAgentSettings(true)}
       />
 
       <AgentMenu
@@ -327,6 +330,11 @@ const { onSaveCycle, onSaveAsNew } = useCycleSave({
         onClose={() => setShowLoadMenu(false)}
         onLoad={handleLoadCycle}
         onDelete={deleteCycle}
+      />
+
+      <AgentSettingsDialog
+        open={showAgentSettings}
+        onClose={() => setShowAgentSettings(false)}
       />
 
       {showSystemPanel && <SystemPanel nodes={nodes} edges={edges} />}

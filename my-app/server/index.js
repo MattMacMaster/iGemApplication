@@ -17,6 +17,7 @@ app.use(express.json());
 const CONTEXT_DIR = path.join(__dirname, 'context');
 
 const { handleAgentMessage } = require('./agent/handleMessage');
+const { getKeyStatus, saveKeys } = require('./agentKeys');
 
 const AGENT_INSTRUCTIONS = fs.readFileSync(
   path.join(CONTEXT_DIR, 'INSTRUCTIONS.md'),
@@ -240,6 +241,29 @@ app.post('/api/agent/chat', async (req, res) => {
  */
 app.get('/api/agent/models', (_req, res) => {
   res.json(listModels());
+});
+
+/**
+ * GET /api/agent/keys
+ * Status only, never returns the raw keys.
+ */
+app.get('/api/agent/keys', (_req, res) => {
+  res.json(getKeyStatus());
+});
+
+/**
+ * POST /api/agent/keys
+ * Empty string clearing that key
+ */
+app.post('/api/agent/keys', (req, res) => {
+  const { geminiApiKey, openRouterApiKey } = req.body ?? {};
+  try {
+    const status = saveKeys({ geminiApiKey, openRouterApiKey });
+    res.json(status);
+  } catch (err) {
+    console.error('Save agent keys error:', err);
+    res.status(500).json({ error: err.message || 'Failed to save keys' });
+  }
 });
 
 /**

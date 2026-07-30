@@ -24,9 +24,9 @@ function loadEnvFile() {
 loadEnvFile();
 
 const OLLAMA_URL = process.env.OLLAMA_URL ?? 'http://localhost:11434';
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? '';
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? '';
 
+const getOpenRouterKey = () => process.env.OPENROUTER_API_KEY ?? '';
+const getGeminiKey = () => process.env.GEMINI_API_KEY ?? '';
 
 const AGENT_MODELS = [
   { id: 'gemini:gemini-3.1-flash-lite', provider: 'gemini', model: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite (Free Tier)' },
@@ -41,8 +41,8 @@ const DEFAULT_MODEL_ID = process.env.AGENT_MODEL_ID ?? 'gemini:gemini-3.1-flash-
 /** Local last resort when remote models fail. */
 const FALLBACK_MODEL_ID = process.env.AGENT_FALLBACK_MODEL_ID ?? 'ollama:qwen2.5:1.5b';
 
-const isOpenRouterConfigured = () => Boolean(OPENROUTER_API_KEY.trim());
-const isGeminiConfigured = () => Boolean(GEMINI_API_KEY.trim());
+const isOpenRouterConfigured = () => Boolean(getOpenRouterKey().trim());
+const isGeminiConfigured = () => Boolean(getGeminiKey().trim());
 const findModel = (modelId) => AGENT_MODELS.find((m) => m.id === modelId) ?? null;
 
 function httpError(message, status) {
@@ -168,7 +168,7 @@ async function chatOnce(selection, { messages, json, temperature }) {
   if (selection.provider === 'openrouter') {
     return chatOpenAICompat({
       url: 'https://openrouter.ai/api/v1/chat/completions',
-      apiKey: OPENROUTER_API_KEY,
+      apiKey: getOpenRouterKey(),
       provider: 'OpenRouter',
       model: selection.model,
       messages,
@@ -183,7 +183,7 @@ async function chatOnce(selection, { messages, json, temperature }) {
   if (selection.provider === 'gemini') {
     return chatOpenAICompat({
       url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-      apiKey: GEMINI_API_KEY,
+      apiKey: getGeminiKey(),
       provider: 'Gemini',
       model: selection.model,
       messages,

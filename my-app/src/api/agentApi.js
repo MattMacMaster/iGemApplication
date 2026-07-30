@@ -45,3 +45,31 @@ export async function chatWithAgent({ messages, canvasContext }) {
     usedFallback: Boolean(data?.usedFallback),
   };
 }
+
+export async function getAgentKeyStatus() {
+  const res = await fetch(`${API_BASE}/agent/keys`);
+  const data = await parseJsonSafe(res);
+  if(!res.ok) {
+    return {
+      ok: false,
+      error: data?.error ?? `Request failed (${res.status})`,
+    };
+  }
+  return { ok: true, data };
+}
+
+export async function saveAgentKeys({ geminiApiKey, openRouterApiKey }) {
+  const res = await fetch(`${API_BASE}/agent/keys`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ geminiApiKey, openRouterApiKey }),
+  });
+  const data = await parseJsonSafe(res);
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: data?.error ?? `Request failed (${res.status})`,
+    };
+  }
+  return { ok: true, data };
+}
