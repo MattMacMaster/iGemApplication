@@ -117,6 +117,8 @@ app.post("/api/cancel", (req, res) => {
         bytes.length,
         bytes
       );
+
+      console.log("Sent: C to board", b);
     }
 
     res.json({
