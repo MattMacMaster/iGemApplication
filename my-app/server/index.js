@@ -20,10 +20,12 @@ const TCA_ADDRESS = 0x70;  // I2C multiplexer
 // NOTE: It seems that Raspberry OS kernel addresses GPIO pins yet by another numbering scheme.
 // cat /sys/kernel/debug/gpio
 // these originally were 17,27,22 for pi3, Changes in PI will break here
+// Current Pi (BCM 17/27/22): 529, 539, 534
+// was 588, 598, 593 on Pi5
 const pins = [
-  new Gpio(588, "out"),
-  new Gpio(598, "out"),
-  new Gpio(593, "out"),
+  new Gpio(529, "out"),
+  new Gpio(539, "out"),
+  new Gpio(534, "out"),
 ];
 
 // Helper function: convert number to 3-bit array
