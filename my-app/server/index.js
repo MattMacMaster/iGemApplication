@@ -102,10 +102,13 @@ app.post("/api/cancel", (req, res) => {
 
   const boards = Number.isInteger(board) && board >= 1 && board <= 4
   ? [board] // cancel this specific board
-  : [1, 2, 3, 4]; // cancel all in future
+  : [1, 2, 3, 4]; // cancel all — skip failures on empty channels
 
-  try {
-    for (const b of boards) {
+  const cancelled = [];
+  const failed = [];
+
+  for (const b of boards) {
+    try {
       const bits = to3BitArray(b);
       writeBits(bits);
 
@@ -119,18 +122,34 @@ app.post("/api/cancel", (req, res) => {
       );
 
       console.log("Sent: C to board", b);
+      cancelled.push(b);
+    } catch (err) {
+      console.error(`I2C Error on board ${b}:`, err.message || err);
+      failed.push(b);
     }
-
-    res.json({
-      message:
-        boards.length === 1
-          ? `Cancel sent to board ${boards[0]}`
-          : "Cancel sent to all boards",
-    });
-  } catch (err) {
-    console.error("I2C Error:", err);
-    res.status(500).json({ error: "I2C failed" });
   }
+
+  // Single-board cancel: still hard-fail if that board did not respond
+  if (boards.length === 1 && cancelled.length === 0) {
+    return res.status(500).json({ error: "I2C failed" });
+  }
+
+  // Cancel all: succeed if at least one board got C
+  if (cancelled.length === 0) {
+    return res.status(500).json({
+      error: "I2C failed on all boards",
+      failedBoards: failed,
+    });
+  }
+
+  res.json({
+    message:
+      boards.length === 1
+        ? `Cancel sent to board ${boards[0]}`
+        : `Cancel sent to board(s) ${cancelled.join(", ")}`,
+    cancelledBoards: cancelled,
+    failedBoards: failed,
+  });
 });
 
 /**
