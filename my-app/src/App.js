@@ -24,6 +24,119 @@ import { useCycleSave } from './hooks/useCycleSave';
 import { useCycleLoader } from './hooks/useCycleLoader';
 import { useCycleDelete } from './hooks/useCycleDelete';
 
+/** Node types Send All can run in v1 (expand later). */
+const RUNNABLE_TYPES = new Set(['syringePump', 'peristalticPump']);
+const PERISTALTIC_STEPS = 1000;
+const INTER_NODE_DELAY_MS = 3000; // Gonna have to change this / remove entirely to implement a 'finish then next'
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Same payload shape as the node Send Instruction buttons.
+ */
+function buildNodePayload(node) {
+  const settings = node.data?.settings ?? {};
+  const steps =
+    node.type === 'peristalticPump'
+      ? PERISTALTIC_STEPS
+      : Number(settings.steps);
+
+  return {
+    type: 'Motor',
+    axis: settings.axis,
+    board: Number(settings.boardVal),
+    compInstr: {
+      steps,
+      Direction: settings.direction,
+    },
+  };
+}
+
+/**
+ * Validates runnable nodes form a single chain and returns them in run order.
+ */
+function getNodeOrder(nodes, edges) {
+  const runnable = nodes.filter((n) => RUNNABLE_TYPES.has(n.type));
+
+  if (runnable.length === 0) {
+    return { ok: false, error: 'No runnable nodes on the canvas.' };
+  }
+
+  if (runnable.length === 1) {
+    return { ok: true, order: runnable };
+  }
+
+  const runnableIds = new Set(runnable.map((n) => n.id));
+  const nodeById = new Map(runnable.map((n) => [n.id, n]));
+
+  const chainEdges = edges.filter(
+    (e) => runnableIds.has(e.source) && runnableIds.has(e.target)
+  );
+
+  const indegree = new Map();
+  const outdegree = new Map();
+  const nextBySource = new Map();
+
+  for (const id of runnableIds) {
+    indegree.set(id, 0);
+    outdegree.set(id, 0);
+  }
+
+  for (const edge of chainEdges) {
+    if (outdegree.get(edge.source) >= 1) {
+      return {
+        ok: false,
+        error: 'Each node can only have one outgoing connection.',
+      };
+    }
+    if (indegree.get(edge.target) >= 1) {
+      return {
+        ok: false,
+        error: 'Each node can only have one incoming connection.',
+      };
+    }
+
+    indegree.set(edge.target, indegree.get(edge.target) + 1);
+    outdegree.set(edge.source, outdegree.get(edge.source) + 1);
+    nextBySource.set(edge.source, edge.target);
+  }
+
+  const heads = runnable.filter((n) => indegree.get(n.id) === 0);
+
+  if (heads.length !== 1) {
+    return {
+      ok: false,
+      error:
+        heads.length === 0
+          ? 'Node chain has a cycle (no start node).'
+          : 'Connect nodes into one chain (multiple start nodes found).',
+    };
+  }
+
+  const order = [];
+  const visited = new Set();
+  let currentId = heads[0].id;
+
+  while (currentId) {
+    if (visited.has(currentId)) {
+      return { ok: false, error: 'Node chain has a cycle.' };
+    }
+
+    visited.add(currentId);
+    order.push(nodeById.get(currentId));
+    currentId = nextBySource.get(currentId);
+  }
+
+  if (order.length !== runnable.length) {
+    return {
+      ok: false,
+      error: 'All runnable nodes must be connected in one chain (floating node found).',
+    };
+  }
+
+  return { ok: true, order };
+}
+
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
 
@@ -31,10 +144,15 @@ function App() {
   const [edges, setEdges] = useState([]);
 
   const nodeId = useRef(0);
+  const cancelRunRef = useRef(false);
 
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
   const [showSystemPanel, setShowSystemPanel] = useState(false);
+
+  const [isRunning, setIsRunning] = useState(false);
+  const [runStatus, setRunStatus] = useState(null);
+  const [cycleCount, setCycleCount] = useState(1);
 
   const [isDarkMode, setIsDarkMode] = useState(
     () => document.documentElement.getAttribute('data-theme') === 'dark'
@@ -94,14 +212,14 @@ function App() {
   /**
    * Cycle save hook.
    */
-const { onSaveCycle, onSaveAsNew } = useCycleSave({
-  nodes,
-  edges,
-  activeCycleId,
-  activeCycleName,
-  setActiveCycleId,
-  setActiveCycleName,
-});
+  const { onSaveCycle, onSaveAsNew } = useCycleSave({
+    nodes,
+    edges,
+    activeCycleId,
+    activeCycleName,
+    setActiveCycleId,
+    setActiveCycleName,
+  });
 
   /**
    * Node types.
@@ -233,13 +351,139 @@ const { onSaveCycle, onSaveAsNew } = useCycleSave({
         (edge) =>
           edge.source === connection.source &&
           sourceKey(edge.sourceHandle) ===
-            sourceKey(connection.sourceHandle)
+          sourceKey(connection.sourceHandle)
       );
 
       return !hasConnection;
     },
     [edges]
   );
+
+  /**
+   * Aborts any in-progress Send All run and halts hardware on all boards.
+   */
+  const onAbort = useCallback(async () => {
+    cancelRunRef.current = true;
+    setRunStatus((prev) => (prev ? { ...prev, aborted: true, error: null } : prev));
+
+    try {
+      await fetch('http://localhost:5001/api/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  /**
+   * Walks the node chain and sends each instruction in order (V1: delay between sends).
+   * Repeats the full chain `cycleCount` times.
+   */
+  const onSendAll = useCallback(async () => {
+    if (isRunning) return;
+
+    const result = getNodeOrder(nodes, edges);
+    if (!result.ok) {
+      alert(result.error);
+      return;
+    }
+
+    for (const node of result.order) {
+      const settings = node.data?.settings ?? {};
+      const label = node.data?.label ?? node.id;
+
+      if (!settings.boardVal || !settings.axis || !settings.direction) {
+        alert(`Missing board/axis/direction on "${label}".`);
+        return;
+      }
+
+      if (node.type === 'syringePump' && !settings.steps) {
+        alert(`Missing steps on "${label}".`);
+        return;
+      }
+    }
+
+    const totalCycles = Math.max(1, Number(cycleCount) || 1);
+    const stepTotal = result.order.length;
+
+    cancelRunRef.current = false;
+    setIsRunning(true);
+    setRunStatus({
+      current: 0,
+      total: stepTotal,
+      cycle: 1,
+      cycleTotal: totalCycles,
+      label: null,
+      board: null,
+    });
+
+    try {
+      outer: for (let c = 1; c <= totalCycles; c++) {
+        for (let i = 0; i < stepTotal; i++) {
+          if (cancelRunRef.current) break outer;
+
+          const node = result.order[i];
+          const settings = node.data?.settings ?? {};
+
+          setRunStatus({
+            current: i + 1,
+            total: stepTotal,
+            cycle: c,
+            cycleTotal: totalCycles,
+            label: node.data?.label ?? node.id,
+            board: settings.boardVal ?? '?',
+          });
+
+          const payload = buildNodePayload(node);
+
+          const res = await fetch('http://localhost:5001/api/instr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+
+          if (!res.ok) {
+            const errBody = await res.json().catch(() => ({}));
+            throw new Error(
+              errBody.error || `Send failed for ${node.data?.label ?? node.id}`
+            );
+          }
+
+          const isLastStep = i === stepTotal - 1;
+          const isLastCycle = c === totalCycles;
+
+          if (!isLastStep || !isLastCycle) {
+            await sleep(INTER_NODE_DELAY_MS);
+            if (cancelRunRef.current) break outer;
+          }
+        }
+      }
+
+      if (cancelRunRef.current) {
+        setRunStatus((prev) =>
+          prev ? { ...prev, aborted: true, error: null } : prev
+        );
+      } else {
+        setRunStatus(null);
+      }
+    } catch (err) {
+      console.error(err);
+      setRunStatus((prev) => ({
+        ...(prev ?? {
+          current: 0,
+          total: stepTotal,
+          cycle: 1,
+          cycleTotal: totalCycles,
+        }),
+        error: err.message || 'Send All failed.',
+        aborted: false,
+      }));
+    } finally {
+      setIsRunning(false);
+    }
+  }, [isRunning, nodes, edges, cycleCount]);
 
   return (
     <div className="App">
@@ -258,25 +502,35 @@ const { onSaveCycle, onSaveAsNew } = useCycleSave({
           <h1 className="app-header__title">
             MOSMAGE Control Interface
           </h1>
+          <label className="cycle-count">
+            Cycles
+            <input
+              className="cycle-count__input"
+              type="number"
+              min={1}
+              value={cycleCount}
+              disabled={isRunning}
+              onChange={(e) =>
+                setCycleCount(Math.max(1, Number(e.target.value) || 1))
+              }
+            />
+          </label>
+          <button
+            className="btn-send-all"
+            onClick={onSendAll}
+            disabled={isRunning}
+          >
+            {isRunning ? 'Running...' : 'Send All'}
+          </button>
+          <button
+            className="btn-abort"
+            onClick={onAbort}
+          >
+            Abort
+          </button>
         </div>
 
         <div className="app-header__actions">
-          <button
-            className="btn-cancel-all"
-            onClick={async () => {
-              try {
-                await fetch("http://localhost:5001/api/cancel", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({}),
-                });
-              } catch (err) {
-                console.error(err);
-              }
-            }}
-          >
-            Cancel All
-          </button>
           <button
             className="btn-secondary"
             onClick={() =>
@@ -289,6 +543,42 @@ const { onSaveCycle, onSaveAsNew } = useCycleSave({
           </button>
         </div>
       </header>
+
+      {runStatus && (
+        <div
+          className={
+            'run-status' +
+            (runStatus.error ? ' run-status--error' : '') +
+            (runStatus.aborted ? ' run-status--aborted' : '')
+          }
+        >
+          <span className="run-status__count">
+            Cycle {runStatus.cycle} of {runStatus.cycleTotal}
+            {' · '}
+            {runStatus.current} of {runStatus.total}
+          </span>
+          {runStatus.error ? (
+            <span className="run-status__msg">{runStatus.error}</span>
+          ) : runStatus.aborted ? (
+            <span className="run-status__msg">Aborted</span>
+          ) : runStatus.label ? (
+            <span className="run-status__msg">
+              Current: {runStatus.label}, Board: {runStatus.board}
+            </span>
+          ) : (
+            <span className="run-status__msg">Starting…</span>
+          )}
+          {(runStatus.error || runStatus.aborted) && (
+            <button
+              type="button"
+              className="run-status__dismiss"
+              onClick={() => setRunStatus(null)}
+            >
+              Dismiss
+            </button>
+          )}
+        </div>
+      )}
 
       <Sidemenu
         isOpen={isMenuOpen}
