@@ -8,68 +8,96 @@ async function parseJsonSafe(res) {
 }
 
 export async function listAgentModels() {
-  const res = await fetch(`${API_BASE}/agent/models`);
-  const data = await parseJsonSafe(res);
-  if (!res.ok) {
+  try {
+    const res = await fetch(`${API_BASE}/agent/models`);
+    const data = await parseJsonSafe(res);
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: data?.error ?? `Request failed (${res.status})`,
+      };
+    }
+    return { ok: true, data };
+  } catch (err) {
     return {
       ok: false,
-      error: data?.error ?? `Request failed (${res.status})`,
+      error: err?.message || 'Server unavailable',
     };
   }
-  return { ok: true, data };
 }
 
 export async function chatWithAgent({ messages, canvasContext }) {
-  const res = await fetch(`${API_BASE}/agent/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, canvasContext }),
-  });
+  try {
+    const res = await fetch(`${API_BASE}/agent/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, canvasContext }),
+    });
 
-  const data = await parseJsonSafe(res);
-  if (!res.ok) {
+    const data = await parseJsonSafe(res);
+    if (!res.ok) {
+      return {
+        ok: false,
+        status: res.status,
+        error: data?.error ?? `Request failed (${res.status})`,
+      };
+    }
+
+    return {
+      ok: true,
+      type: data?.type ?? 'message',
+      reply: data?.reply ?? '',
+      cycle: data?.cycle ?? null,
+      modelId: data?.modelId ?? null,
+      modelLabel: data?.modelLabel ?? null,
+      usedFallback: Boolean(data?.usedFallback),
+    };
+  } catch (err) {
     return {
       ok: false,
-      status: res.status,
-      error: data?.error ?? `Request failed (${res.status})`,
+      error: err?.message || 'Server unavailable',
     };
   }
-
-  return {
-    ok: true,
-    type: data?.type ?? 'message',
-    reply: data?.reply ?? '',
-    cycle: data?.cycle ?? null,
-    modelId: data?.modelId ?? null,
-    modelLabel: data?.modelLabel ?? null,
-    usedFallback: Boolean(data?.usedFallback),
-  };
 }
 
 export async function getAgentKeyStatus() {
-  const res = await fetch(`${API_BASE}/agent/keys`);
-  const data = await parseJsonSafe(res);
-  if(!res.ok) {
+  try {
+    const res = await fetch(`${API_BASE}/agent/keys`);
+    const data = await parseJsonSafe(res);
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: data?.error ?? `Request failed (${res.status})`,
+      };
+    }
+    return { ok: true, data };
+  } catch (err) {
     return {
       ok: false,
-      error: data?.error ?? `Request failed (${res.status})`,
+      error: err?.message || 'Server unavailable',
     };
   }
-  return { ok: true, data };
 }
 
 export async function saveAgentKeys({ geminiApiKey, openRouterApiKey }) {
-  const res = await fetch(`${API_BASE}/agent/keys`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ geminiApiKey, openRouterApiKey }),
-  });
-  const data = await parseJsonSafe(res);
-  if (!res.ok) {
+  try {
+    const res = await fetch(`${API_BASE}/agent/keys`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ geminiApiKey, openRouterApiKey }),
+    });
+    const data = await parseJsonSafe(res);
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: data?.error ?? `Request failed (${res.status})`,
+      };
+    }
+    return { ok: true, data };
+  } catch (err) {
     return {
       ok: false,
-      error: data?.error ?? `Request failed (${res.status})`,
+      error: err?.message || 'Server unavailable',
     };
   }
-  return { ok: true, data };
 }
