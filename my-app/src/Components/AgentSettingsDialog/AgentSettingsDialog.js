@@ -101,30 +101,30 @@ export default function AgentSettingsDialog({ open, onClose }) {
           </button>
         </div>
 
-        <form className="loadmenu__body" onSubmit={handleSave}>
-          <p style={{ marginTop: 0, fontSize: 13, color: 'var(--color-text-muted)' }}>
+        <form className="loadmenu__body agent-settings" onSubmit={handleSave}>
+          <p className="agent-settings__hint">
             Optional. Keys are stored on this machine only. Leave a field blank to keep the current key.
           </p>
 
-          <div style={{ marginBottom: 12 }}>
-            <label style={{ display: 'block', fontSize: 13 }}>
+          <div className="agent-settings__field">
+            <label className="agent-settings__label" htmlFor="agent-gemini-key">
               Gemini
-              <span style={{ marginLeft: 8, opacity: 0.7 }}>
+              <span className="agent-settings__status">
                 {status.geminiConfigured ? '(configured)' : '(not set)'}
               </span>
-              <input
-                type="password"
-                value={geminiApiKey}
-                onChange={(e) => setGeminiApiKey(e.target.value)}
-                placeholder="Paste Gemini API key"
-                autoComplete="off"
-                style={{ display: 'block', width: '100%', marginTop: 4, boxSizing: 'border-box' }}
-              />
             </label>
+            <input
+              id="agent-gemini-key"
+              className="agent-settings__input"
+              type="password"
+              value={geminiApiKey}
+              onChange={(e) => setGeminiApiKey(e.target.value)}
+              placeholder="Paste Gemini API key"
+              autoComplete="off"
+            />
             <button
               type="button"
               className="btn-secondary"
-              style={{ marginTop: 6 }}
               onClick={handleClearGemini}
               disabled={saving || !status.geminiConfigured}
             >
@@ -132,25 +132,25 @@ export default function AgentSettingsDialog({ open, onClose }) {
             </button>
           </div>
 
-          <div style={{ marginBottom: 12 }}>
-            <label style={{ display: 'block', fontSize: 13 }}>
+          <div className="agent-settings__field">
+            <label className="agent-settings__label" htmlFor="agent-openrouter-key">
               OpenRouter
-              <span style={{ marginLeft: 8, opacity: 0.7 }}>
+              <span className="agent-settings__status">
                 {status.openRouterConfigured ? '(configured)' : '(not set)'}
               </span>
-              <input
-                type="password"
-                value={openRouterApiKey}
-                onChange={(e) => setOpenRouterApiKey(e.target.value)}
-                placeholder="Paste OpenRouter API key"
-                autoComplete="off"
-                style={{ display: 'block', width: '100%', marginTop: 4, boxSizing: 'border-box' }}
-              />
             </label>
+            <input
+              id="agent-openrouter-key"
+              className="agent-settings__input"
+              type="password"
+              value={openRouterApiKey}
+              onChange={(e) => setOpenRouterApiKey(e.target.value)}
+              placeholder="Paste OpenRouter API key"
+              autoComplete="off"
+            />
             <button
               type="button"
               className="btn-secondary"
-              style={{ marginTop: 6 }}
               onClick={handleClearOpenRouter}
               disabled={saving || !status.openRouterConfigured}
             >
@@ -158,11 +158,13 @@ export default function AgentSettingsDialog({ open, onClose }) {
             </button>
           </div>
 
-          {message && <p style={{ fontSize: 13 }}>{message}</p>}
+          {message && <p className="agent-settings__message">{message}</p>}
 
-          <button type="submit" className="btn-secondary" disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
-          </button>
+          <div className="agent-settings__actions">
+            <button type="submit" className="btn-secondary" disabled={saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
